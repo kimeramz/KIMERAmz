@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Produtos & Lojas</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/lojas.css"/>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-search">
+      <svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Pesquisar produtos, lojas..." onkeydown="handleSearch(event)"/>
+    </div>
+    <div class="nav-actions">
+      <a href="/pages/lojas.html" class="nav-link active">Lojas</a>
+      <a href="/pages/criar.html" class="nav-link">Criar</a>
+      <a href="/pages/carrinho.html" class="nav-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge">0</span></a>
+      <a href="/pages/login.html" class="nav-icon-btn" id="userBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-nav-drawer" id="mobileNav">
+    <a href="/pages/index.html">Home</a><a href="/pages/lojas.html">Lojas</a>
+    <a href="/pages/criar.html">Criar</a><a href="/pages/carrinho.html">Carrinho</a>
+    <a href="/pages/rastrear.html">Rastrear</a><a href="/pages/contactos.html">Contactos</a>
+  </div>
+</nav>
+
+<!-- Cabeçalho de loja (visível só quando ?store=ID) -->
+<div id="storeHeaderContainer" style="display:none;"></div>
+
+<main class="page-container lojas-main">
+  <div class="lojas-header">
+    <div>
+      <h1 id="lojaPageTitle">Produtos & Lojas</h1>
+      <p id="lojaPageSub">Descubra as melhores lojas do marketplace</p>
+    </div>
+    <div class="lojas-toolbar">
+      <span class="results-count" id="resultsCount"></span>
+      <select class="sort-select" id="sortSelect" onchange="applyFilters()">
+        <option value="newest">Mais recentes</option>
+        <option value="price_asc">Preço: menor</option>
+        <option value="price_desc">Preço: maior</option>
+        <option value="popular">Mais vendidos</option>
+      </select>
+      <button class="btn-filter-toggle" onclick="toggleFilters()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        Filtrar
+      </button>
+    </div>
+  </div>
+
+  <div class="lojas-layout">
+    <aside class="filters-panel" id="filtersPanel">
+      <div class="filter-group">
+        <h4>Categoria</h4>
+        <div id="catList"></div>
+      </div>
+      <button class="btn btn-red" style="width:100%;margin-top:16px;" onclick="applyFilters()">Aplicar</button>
+      <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="clearFilters()">Limpar</button>
+    </aside>
+
+    <div class="lojas-content">
+      <div class="products-grid" id="productsGrid"></div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/lojas.js"></script>
+</body>
+</html>

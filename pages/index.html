@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Marketplace Moçambicano</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/home.css"/>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-search">
+      <svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Pesquisar produtos, lojas..." onkeydown="handleSearch(event)"/>
+    </div>
+    <div class="nav-actions">
+      <a href="/pages/lojas.html" class="nav-link">Lojas</a>
+      <a href="/pages/criar.html" class="nav-link">Criar</a>
+      <a href="/pages/carrinho.html" class="nav-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge">0</span></a>
+      <a href="/pages/login.html" class="nav-icon-btn" id="userBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-nav-drawer" id="mobileNav">
+    <a href="/pages/index.html">Home</a><a href="/pages/lojas.html">Lojas</a>
+    <a href="/pages/criar.html">Criar</a><a href="/pages/carrinho.html">Carrinho</a>
+    <a href="/pages/rastrear.html">Rastrear</a><a href="/pages/contactos.html">Contactos</a>
+  </div>
+</nav>
+
+<main>
+  <!-- BANNER -->
+  <section class="banner-section">
+    <div class="banner-carousel" id="bannerCarousel">
+      <div class="banner-loading"><div class="loading-spinner"></div></div>
+    </div>
+    <div class="banner-dots" id="bannerDots"></div>
+    <button class="banner-nav prev" onclick="bannerPrev()" aria-label="Anterior">‹</button>
+    <button class="banner-nav next" onclick="bannerNext()" aria-label="Próximo">›</button>
+  </section>
+
+ <!-- CATEGORIAS -->
+<section class="page-container categories-section">
+  <h2 class="section-title">Categorias</h2>
+  <div class="categories-scroll">
+
+    <div class="category-item" onclick="filterByCategory('Camisetas')">
+      <div class="category-img">
+        <img src="../assets/categorias/camisetas.png" alt="Camisetas">
+      </div>
+      <span>Camisetas</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Calças')">
+      <div class="category-img">
+        <img src="../assets/categorias/calcas.png" alt="Calças">
+      </div>
+      <span>Calças</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Vestidos')">
+      <div class="category-img">
+        <img src="../assets/categorias/vestidos.png" alt="Vestidos">
+      </div>
+      <span>Vestidos</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Calçado')">
+      <div class="category-img">
+        <img src="../assets/categorias/calcado.png" alt="Calçado">
+      </div>
+      <span>Calçado</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Acessórios')">
+      <div class="category-img">
+        <img src="../assets/categorias/acessorios.png" alt="Acessórios">
+      </div>
+      <span>Acessórios</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Desporto')">
+      <div class="category-img">
+        <img src="../assets/categorias/desporto.png" alt="Desporto">
+      </div>
+      <span>Desporto</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Crianças')">
+      <div class="category-img">
+        <img src="../assets/categorias/criancas.png" alt="Crianças">
+      </div>
+      <span>Crianças</span>
+    </div>
+
+    <div class="category-item" onclick="filterByCategory('Formal')">
+      <div class="category-img">
+        <img src="../assets/categorias/formal.png" alt="Formal">
+      </div>
+      <span>Formal</span>
+    </div>
+
+  </div>
+</section>
+
+  <!-- DESTAQUE -->
+  <section class="page-container products-section">
+    <div class="section-header"><h2 class="section-title">Em Destaque</h2><a href="/pages/lojas.html" class="see-all">Ver todos →</a></div>
+    <div class="products-grid" id="productsGrid"><div class="page-loading"><div class="loading-spinner"></div></div></div>
+
+    <!-- BANNER MEIO -->
+    <div class="banner-mid" onclick="window.location.href='/pages/criar.html'">
+      <div class="banner-mid-content">
+        <h2>Cria a tua peça única</h2>
+        <p>Personaliza camisetas, hoodies e muito mais</p>
+        <span class="btn btn-dark">Começar a Criar →</span>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:40px;"><h2 class="section-title">Mais Vendidos</h2><a href="lojas.html?sort=popular" class="see-all">Ver todos →</a></div>
+    <div class="products-grid" id="bestsellerGrid"><div class="page-loading"><div class="loading-spinner"></div></div></div>
+  </section>
+
+  <!-- LOJAS -->
+  <section class="page-container stores-section">
+    <h2 class="section-title">Lojas em Destaque</h2>
+    <div class="stores-grid" id="storesGrid"><div class="page-loading"><div class="loading-spinner"></div></div></div>
+  </section>
+
+  <!-- PROVA SOCIAL -->
+  <section class="page-container social-section">
+    <h2 class="section-title">Clientes Satisfeitos</h2>
+    <div class="social-grid" id="socialGrid"></div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="page-container footer-inner">
+      <div class="footer-brand">
+        <span class="logo" style="color:#fff;">kimera<span style="color:#E53935;">.</span></span>
+        <p>O marketplace moçambicano que une lojas e compradores.</p>
+      </div>
+      <div class="footer-links">
+        <a href="/pages/lojas.html">Lojas</a><a href="/pages/criar.html">Criar</a>
+        <a href="/pages/rastrear.html">Rastrear</a><a href="/pages/contactos.html">Contactos</a>
+      </div>
+      <div class="footer-contact">
+        <p>📍 Maputo, Moçambique</p>
+        <p>📞 +258 849 368 285</p>
+        <p>✉️ kimera@kimera.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom"><p>© 2025 Kimera. Todos os direitos reservados.</p></div>
+  </footer>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/home.js"></script>
+</body>
+</html>

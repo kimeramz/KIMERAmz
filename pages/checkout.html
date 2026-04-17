@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Checkout</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/checkout.css"/>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-actions" style="margin-left:auto;display:flex;gap:8px;">
+      <a href="/pages/carrinho" class="nav-icon-btn" title="Carrinho">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span class="cart-badge">0</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="page-container checkout-main">
+  <div class="checkout-steps">
+    <div class="step active" id="step1"><span>1</span> Informações</div>
+    <div class="step-line"></div>
+    <div class="step" id="step2"><span>2</span> Pagamento</div>
+    <div class="step-line"></div>
+    <div class="step" id="step3"><span>3</span> Confirmar</div>
+  </div>
+
+  <div class="checkout-layout">
+    <div class="checkout-form">
+
+      <!-- SECÇÃO 1 -->
+      <div class="form-section" id="sec1">
+        <h3><span class="form-num">1</span> Informações do Cliente</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Primeiro e último nome *</label>
+            <input type="text" id="clientName" placeholder="Ex: Jani Carlos" required/>
+          </div>
+
+          <div class="form-field full">
+            <label>Contacto (WhatsApp) *</label>
+            <div class="input-phone">
+              <span class="phone-prefix">+258</span>
+              <input type="tel" id="clientPhone" placeholder="84 123 456 789" maxlength="12"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECÇÃO 2 -->
+      <div class="form-section" id="sec2">
+        <h3><span class="form-num">2</span> Endereço de Entrega</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Província, Distrito, Vila/Bairro *</label>
+            <input type="text" id="province" placeholder="Ex: Maputo, Manhiça, Vila"/>
+          </div>
+
+          <div class="form-field full">
+            <label>Ponto de referência / Informações adicionais</label>
+            <input type="text" id="extraInfo" placeholder="Ex: Perto da escola primária"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECÇÃO 3 -->
+      <div class="form-section">
+        <h3><span class="form-num">3</span> Cupão de Desconto <span style="font-weight:400;font-size:13px;color:#9E9E9E;">(opcional)</span></h3>
+        <div class="coupon-row">
+          <input type="text" id="cupomInput" placeholder="Inserir código de desconto..."/>
+          <button class="btn btn-outline" onclick="applyCoupon()">Verificar</button>
+        </div>
+        <p class="coupon-msg" id="couponMsg"></p>
+      </div>
+
+      <!-- SECÇÃO 4 -->
+      <div class="form-section mpesa-section">
+        <h3><span class="form-num">4</span> Método de Pagamento</h3>
+
+        <div class="payment-selected" style="margin-bottom:12px;">
+          <div class="mpesa-badge-big" style="background:#25D366;">WHATSAPP</div>
+          <div class="mpesa-info">
+            <p>Confirmação manual por WhatsApp</p>
+            <span>Vamos gerar a encomenda, abrir uma mensagem pronta e o cliente enviará o comprovativo para validação.</span>
+          </div>
+        </div>
+
+        <div class="payment-selected" style="opacity:.65;">
+          <div class="mpesa-badge-big">M-PESA</div>
+          <div class="mpesa-info">
+            <p>M-Pesa</p>
+            <span>Temporariamente indisponível.</span>
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-top:16px;">
+          <label>Número usado no pagamento / M-Pesa *</label>
+          <div class="input-phone">
+            <span class="phone-prefix">+258</span>
+            <input type="tel" id="payPhone" placeholder="84 XXX XXX XXX" maxlength="12" oninput="validatePayPhone(this)"/>
+          </div>
+          <p class="field-hint" id="payPhoneHint"></p>
+        </div>
+
+        <div class="form-field" style="margin-top:12px;">
+          <label>Número WhatsApp da KIMERA para validação</label>
+          <input type="text" id="startupWhatsapp" value="+258 849368285" readonly style="background:#F9FAFB;color:#111;font-weight:600;"/>
+        </div>
+
+        <div style="margin-top:12px;padding:14px;border:1px solid #E5E7EB;border-radius:12px;background:#FAFAFA;">
+          <p style="font-size:13px;color:#616161;line-height:1.5;margin:0;">
+            O cliente vai pagar, abrir o WhatsApp com a mensagem da encomenda, enviar o comprovativo, a referência da transação e o código do recibo.
+            Depois a startup valida e confirma o pagamento.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECÇÃO 5 -->
+      <div class="form-section confirm-section">
+        <label class="confirm-check">
+          <input type="checkbox" id="confirmCheck" onchange="toggleConfirm()"/>
+          <span>Confirmo que quero criar a encomenda e aceito os <a href="#">termos e condições</a></span>
+        </label>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <button class="btn btn-red confirm-btn" id="confirmBtnWhatsApp" disabled onclick="placeOrderWhatsApp()">
+            <span id="checkTotalBtn">Confirmar e Enviar por WhatsApp</span>
+          </button>
+
+          <button class="btn btn-outline confirm-btn" id="confirmBtnMpesa" disabled onclick="showMpesaUnavailable()">
+            M-Pesa API (em breve)
+          </button>
+        </div>
+
+        <p class="secure-note">
+          O comprovativo será validado manualmente pela equipa da Kimera antes da encomenda avançar.
+        </p>
+      </div>
+    </div>
+
+    <!-- RESUMO -->
+    <aside class="order-summary">
+      <div class="order-card">
+        <h3>Resumo do Pedido</h3>
+        <div class="order-items-list" id="checkoutItems">
+          <div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div>
+        </div>
+        <div class="order-totals">
+          <div class="ot-row"><span>Subtotal</span><span id="checkSubtotal">—</span></div>
+          <div class="ot-row"><span>Desconto</span><span id="checkDiscount" style="color:#16A34A;">0,00 MT</span></div>
+          <div class="ot-row"><span>Entrega</span><span id="checkDelivery">—</span></div>
+          <div class="ot-row total"><span>TOTAL</span><span id="checkTotal">—</span></div>
+          <div class="ot-row commission-note">
+            <span>Comissão Kimera (8%)</span>
+            <span id="checkCommission" style="color:#9E9E9E;font-size:12px;">—</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="payment-overlay" id="paymentOverlay" style="display:none;">
+  <div class="payment-modal" id="paymentModal">
+    <div class="payment-loading-state" id="payLoadingState">
+      <div class="pay-spinner"></div>
+      <h3>A criar a encomenda...</h3>
+      <p id="payStep">A preparar mensagem de pagamento...</p>
+      <div class="pay-details">
+        <div class="pay-detail-row"><span>Cliente</span><strong id="payName">—</strong></div>
+        <div class="pay-detail-row"><span>Valor</span><strong id="payAmount">—</strong></div>
+        <div class="pay-detail-row"><span>Contacto</span><strong id="payPhone2">—</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/checkout.js"></script>
+</body>
+</html>

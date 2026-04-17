@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Dashboard da Loja</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+</head>
+<body class="admin-body">
+<div id="sidebarOverlay" class="admin-sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="admin-layout">
+
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-brand">
+      <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+      <span class="sidebar-tag">Loja</span>
+    </div>
+    <div class="store-identity" id="storeIdentity">
+      <div class="store-avatar-sidebar" id="storeAvatarSidebar">—</div>
+      <p id="storeNameSidebar">A carregar...</p>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-item active" onclick="showDash('overview',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Visão Geral
+      </button>
+      <button class="sidebar-item" onclick="showDash('produtos',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/></svg>Produtos
+      </button>
+      <button class="sidebar-item" onclick="showDash('pedidos',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Pedidos
+        <span class="sidebar-badge" id="ordersBadge">0</span>
+      </button>
+      <button class="sidebar-item" onclick="showDash('pagamentos',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Receitas
+      </button>
+      <button class="sidebar-item" onclick="showDash('avaliacoes',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Avaliações
+      </button>
+      <button class="sidebar-item" onclick="showDash('loja',this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Minha Loja
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-user">
+        <div class="admin-avatar" id="ownerAv">?</div>
+        <div><p class="admin-name" id="ownerName">Vendedor</p><p class="admin-role">store_owner</p></div>
+      </div>
+      <button onclick="doLogout()" class="logout-btn" title="Sair">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span style="font-weight:700;font-size:16px;" id="dashTitle">Visão Geral</span>
+      <a href="/pages/index.html" target="_blank" class="btn btn-outline" style="margin-left:auto;padding:6px 14px;font-size:13px;">Ver Loja →</a>
+    </header>
+
+    <!-- OVERVIEW -->
+    <section class="admin-section active" id="dash-overview">
+      <div class="section-heading"><h1>Visão Geral</h1>
+        <div id="newValidatedNotice" class="info-box" style="display:none;margin-bottom:16px;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M9 11l3 3L22 4"/>
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+  </svg>
+  <p id="newValidatedNoticeText">Há novos pedidos confirmados.</p>
+</div>
+        <div class="period-selector">
+          <button class="period-btn active" onclick="setPeriod('today',this)">Hoje</button>
+          <button class="period-btn" onclick="setPeriod('week',this)">Semana</button>
+          <button class="period-btn" onclick="setPeriod('month',this)">Mês</button>
+        </div>
+      </div>
+      <div class="kpi-grid" id="storeKpis">
+        <div class="kpi-card"><div class="kpi-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="kpi-info"><span class="kpi-label">Receita</span><span class="kpi-value" id="sk-revenue">—</span></div></div>
+        <div class="kpi-card"><div class="kpi-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div class="kpi-info"><span class="kpi-label">Pedidos</span><span class="kpi-value" id="sk-orders">—</span></div></div>
+        <div class="kpi-card"><div class="kpi-icon amber"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="kpi-info"><span class="kpi-label">Avaliação</span><span class="kpi-value" id="sk-rating">—</span></div></div>
+        <div class="kpi-card"><div class="kpi-icon red"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/></svg></div><div class="kpi-info"><span class="kpi-label">Produtos</span><span class="kpi-value" id="sk-products">—</span></div></div>
+      </div>
+      <div class="admin-card" style="margin-top:20px;">
+        <div class="card-header"><h3>Últimos Pedidos</h3></div>
+        <div id="recentStoreOrders"><div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div></div>
+      </div>
+    </section>
+
+    <!-- PRODUTOS DA LOJA -->
+    <section class="admin-section" id="dash-produtos">
+      <div class="section-heading"><h1>Produtos</h1><button class="btn btn-red" onclick="openModal('modalProduto')">+ Novo Produto</button></div>
+      <div class="admin-table-wrap" id="storeProdTable">
+        <div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div>
+      </div>
+    </section>
+
+    
+
+    <!-- PEDIDOS DA LOJA -->
+    <section class="admin-section" id="dash-pedidos">
+      <div class="section-heading"><h1>Pedidos da Loja</h1></div>
+      <div class="order-status-tabs">
+        <button class="otab active" onclick="filterStoreOrders('all',this)">Todos</button>
+        <button class="otab" onclick="filterStoreOrders('pending',this)">Pendentes</button>
+        <button class="otab" onclick="filterStoreOrders('paid',this)">Pagos</button>
+        <button class="otab" onclick="filterStoreOrders('shipped',this)">Enviados</button>
+        <button class="otab" onclick="filterStoreOrders('delivered',this)">Entregues</button>
+      </div>
+          <div class="info-box" style="margin-bottom:14px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p>
+        Só aparecem aqui pedidos com pagamento já validado pela Kimera.
+        Pedidos em análise de comprovativo não entram nesta lista.
+      </p>
+    </div>
+      <div class="admin-table-wrap" id="storeOrdersTable">
+        <div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div>
+      </div>
+    </section>
+
+    <!-- RECEITAS -->
+    <section class="admin-section" id="dash-pagamentos">
+      <div class="section-heading"><h1>Receitas</h1></div>
+      <div class="info-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>A Kimera retém <strong>8%</strong> de comissão. Os valores são repassados pelo Super Admin após confirmação de entrega.</p>
+      </div>
+      <div id="revenueTable"><div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div></div>
+    </section>
+
+    <!-- AVALIAÇÕES DA LOJA -->
+    <section class="admin-section" id="dash-avaliacoes">
+      <div class="section-heading"><h1>Avaliações</h1></div>
+      <div id="storeReviewsList"><div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div></div>
+    </section>
+
+    <!-- EDITAR LOJA -->
+    <section class="admin-section" id="dash-loja">
+      <div class="section-heading"><h1>Minha Loja</h1></div>
+      <div class="admin-card" style="max-width:600px;">
+        <div class="config-field"><label>Nome da loja</label><input type="text" id="editLojaName"/></div>
+        <div class="config-field"><label>Descrição</label><textarea id="editLojaDesc" rows="3" style="height:auto;padding:10px 12px;"></textarea></div>
+        <div class="config-field"><label>Localização</label><input type="text" id="editLojaLocation"/></div>
+        <div class="config-field">
+          <label>Logo</label>
+          <div class="upload-field" onclick="document.getElementById('editLojaLogo').click()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p id="editLogoLabel">Alterar logo</p>
+          </div>
+          <input type="file" id="editLojaLogo" accept="image/*" style="display:none" onchange="previewEditImg('editLojaLogo','editLogoLabel','editLogoPreview')"/>
+          <img id="editLogoPreview" style="max-height:60px;margin-top:8px;border-radius:50%;display:none;"/>
+        </div>
+        <div class="config-field">
+          <label>Banner</label>
+          <div class="upload-field" onclick="document.getElementById('editLojaBanner').click()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p id="editBannerLabel">Alterar banner</p>
+          </div>
+          <input type="file" id="editLojaBanner" accept="image/*" style="display:none" onchange="previewEditImg('editLojaBanner','editBannerLabel','editBannerPreview')"/>
+          <img id="editBannerPreview" style="width:100%;max-height:80px;object-fit:cover;border-radius:8px;margin-top:8px;display:none;"/>
+        </div>
+        <button class="btn btn-red" style="margin-top:8px;" onclick="saveMyLoja()">Guardar Alterações</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- MODAL PRODUTO -->
+<div class="modal-overlay" id="modalProduto">
+  <div class="modal">
+    <div class="modal-header"><h3 id="prodModalTitle">Novo Produto</h3><button class="modal-close" onclick="closeModal('modalProduto')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="prodEditId"/>
+      <div class="form-row2">
+        <div class="config-field"><label>Nome *</label><input type="text" id="prodName" placeholder="Ex: T-Shirt Kimera"/></div>
+        <div class="config-field"><label>Preço (MT) *</label><input type="number" id="prodPrice" placeholder="850" min="0" step="0.01"/></div>
+      </div>
+      <div class="form-row2">
+        <div class="config-field"><label>Preço original (riscado)</label><input type="number" id="prodOrigPrice" placeholder="1000" min="0"/></div>
+        <div class="config-field"><label>Stock</label><input type="number" id="prodStock" placeholder="20" min="0"/></div>
+      </div>
+      <div class="form-row2">
+        <div class="config-field"><label>Categoria</label>
+          <select id="prodCategory"><option>Camisetas</option><option>Calças</option><option>Vestidos</option><option>Calçado</option><option>Acessórios</option><option>Desporto</option><option>Crianças</option></select>
+        </div>
+        <div class="config-field"><label>Desconto (%)</label><input type="number" id="prodDiscount" placeholder="0" min="0" max="100"/></div>
+      </div>
+      <div class="config-field"><label>Descrição</label><textarea id="prodDesc" rows="3" placeholder="Descreva o produto..." style="height:auto;padding:10px 12px;"></textarea></div>
+      <div class="config-field"><label>Tamanhos disponíveis (separados por vírgula)</label><input type="text" id="prodSizes" placeholder="XS,S,M,L,XL,XXL"/></div>
+      <div class="config-field"><label>Cores disponíveis (ex: #000000,#FFFFFF)</label><input type="text" id="prodColors" placeholder="#000000,#FFFFFF,#E53935"/></div>
+
+      <!-- IMAGENS COM AJUSTE -->
+      <div class="config-field">
+        <label>Imagem principal *</label>
+        <div class="upload-field" id="mainImgZone" onclick="document.getElementById('prodMainImg').click()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Carregar imagem principal</p>
+        </div>
+        <input type="file" id="prodMainImg" accept="image/*" style="display:none" onchange="loadImageEditor(this,'mainImgEditor','mainImgZone')"/>
+        <div id="mainImgEditor" style="display:none;margin-top:12px;">
+          <div style="position:relative;overflow:hidden;border-radius:8px;background:#f5f5f5;aspect-ratio:1;max-width:300px;cursor:crosshair;" id="mainImgCropArea">
+            <img id="mainImgCropImg" style="width:100%;height:100%;object-fit:cover;" draggable="false"/>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="range" id="mainImgZoom" min="100" max="300" value="100" step="5" style="flex:1;" oninput="applyZoom('mainImgCropImg',this.value)"/>
+            <label style="font-size:12px;color:#757575;">Zoom</label>
+            <button class="act-btn del" onclick="resetImg('prodMainImg','mainImgEditor','mainImgZone')">Remover</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-field">
+        <label>Imagens adicionais (galeria)</label>
+        <div class="upload-field" onclick="document.getElementById('prodGallery').click()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Adicionar mais fotos</p>
+        </div>
+        <input type="file" id="prodGallery" accept="image/*" multiple style="display:none" onchange="previewGallery(this)"/>
+        <div id="galleryPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
+      </div>
+
+      <div class="config-toggle"><label>Produto em destaque (homepage)</label><input type="checkbox" id="prodFeatured"/></div>
+      <div class="config-toggle"><label>Novo</label><input type="checkbox" id="prodIsNew" checked/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalProduto')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveProduto()">Guardar Produto</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/dashboard.js"></script>
+</body>
+</html>

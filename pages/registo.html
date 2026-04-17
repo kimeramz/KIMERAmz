@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Criar Conta</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/auth.css"/>
+</head>
+<body class="auth-body">
+<div class="auth-container">
+  <div class="auth-brand">
+    <a href="index.html" class="logo">kimera<span>.</span></a>
+    <p>Junte-se ao marketplace moçambicano</p>
+  </div>
+  <div class="auth-card">
+    <h2>Criar Conta</h2>
+    <p class="auth-sub">Registe-se gratuitamente como cliente</p>
+    <form onsubmit="handleRegisto(event)">
+      <div class="auth-field">
+        <label>Número de celular</label>
+        <div class="input-with-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6z"/></svg>
+          <input type="tel" id="regPhone" placeholder="8X XXX XXXX" required/>
+        </div>
+      </div>
+      <div class="auth-field">
+        <label>Senha</label>
+        <div class="input-with-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="regPwd" placeholder="Mínimo 8 caracteres" required/>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('regPwd')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="auth-field">
+        <label>Confirmar Senha</label>
+        <div class="input-with-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="regConfirm" placeholder="Repetir senha" required/>
+        </div>
+      </div>
+      <p class="error-msg" id="regError" style="display:none;color:#DC2626;font-size:13px;margin-top:-8px;"></p>
+      <button type="submit" class="btn btn-red auth-btn" id="regBtn">Registar</button>
+    </form>
+    <p class="auth-switch">Já tem conta? <a href="login.html">Entrar</a></p>
+  </div>
+</div>
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/auth.js"></script>
+</body>
+</html>

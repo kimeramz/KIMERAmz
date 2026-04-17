@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Produto</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/produto.css"/>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-search">
+      <svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Pesquisar..."/>
+    </div>
+    <div class="nav-actions">
+      <a href="/pages/lojas.html" class="nav-link">Lojas</a>
+      <a href="/pages/criar.html" class="nav-link">Criar</a>
+      <a href="/pages/carrinho.html" class="nav-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge">0</span></a>
+      <a href="/pages/login.html" class="nav-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-nav-drawer" id="mobileNav">
+    <a href="/pages/index.html">Home</a><a href="/pages/lojas.html">Lojas</a>
+    <a href="/pages/carrinho.html">Carrinho</a>
+  </div>
+</nav>
+
+<main class="page-container">
+  <!-- BREADCRUMB -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/pages/index.html">Home</a>
+    <span>/</span>
+    <a href="/pages/lojas.html">Lojas</a>
+    <span>/</span>
+    <a href="#" id="breadStore">Loja</a>
+    <span>/</span>
+    <span id="breadName">Produto</span>
+  </nav>
+
+  <!-- LOADING -->
+  <div class="page-loading" id="loadingState">
+    <div class="loading-spinner"></div>
+    <p>A carregar produto...</p>
+  </div>
+
+  <!-- LAYOUT PRODUTO -->
+  <div class="produto-layout" id="produtoLayout" style="display:none;">
+
+    <!-- GALERIA -->
+    <div class="galeria">
+      <div class="galeria-main" id="galeriaMain"></div>
+      <div class="galeria-thumbs" id="galeriaThumbs"></div>
+    </div>
+
+    <!-- INFO -->
+    <div class="produto-info-panel">
+      <p class="prod-store-tag" id="prodStore"></p>
+      <h1 class="prod-name" id="prodName"></h1>
+
+      <div class="prod-rating" id="prodRating"></div>
+
+      <div class="prod-price-block">
+        <span class="prod-price" id="prodPreco"></span>
+        <span class="prod-price-old" id="prodPrecoOld"></span>
+        <span class="prod-save" id="prodSave" style="display:none;"></span>
+      </div>
+
+      <p class="prod-desc" id="prodDesc"></p>
+
+      <!-- TAMANHOS -->
+      <div class="option-group" id="sizesGroup" style="display:none;">
+        <label class="option-label">Tamanho</label>
+        <div class="size-grid" id="sizeGrid"></div>
+      </div>
+
+      <!-- CORES -->
+      <div class="option-group" id="colorsGroup" style="display:none;">
+        <label class="option-label">Cor — <span id="colorLabel">Seleccione</span></label>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+
+      <!-- QUANTIDADE -->
+      <div class="option-group">
+        <label class="option-label">Quantidade</label>
+        <div class="qty-ctrl">
+          <button onclick="changeQty(-1)">−</button>
+          <input type="number" id="qtyInput" value="1" min="1"/>
+          <button onclick="changeQty(1)">+</button>
+        </div>
+        <span class="stock-info" id="stockInfo"></span>
+      </div>
+
+      <!-- ACÇÕES -->
+      <div class="prod-actions">
+        <button class="btn btn-red" id="btnCart" onclick="handleAddToCart()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          Adicionar ao Carrinho
+        </button>
+        <button class="btn btn-dark" id="btnBuy" onclick="handleBuyNow()">Comprar Agora</button>
+        <button class="btn-wish" id="wishBtn" onclick="toggleWish()" title="Guardar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+
+      <!-- INFO LOJA -->
+      <div class="store-info-card" id="storeInfoCard">
+        <div class="store-info-logo" id="storeInfoLogo"></div>
+        <div>
+          <p class="store-info-name" id="storeInfoName"></p>
+          <p class="store-info-loc" id="storeInfoLoc"></p>
+        </div>
+        <a class="btn-store-link" id="storeInfoLink" href="#">Ver Loja →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="produto-tabs" id="produtoTabs" style="display:none;">
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('desc',this)">Descrição</button>
+      <button class="tab-btn" onclick="switchTab('reviews',this)">Avaliações <span id="reviewCountBadge" class="tab-badge">0</span></button>
+      <button class="tab-btn" onclick="switchTab('provas',this)">Provas de Entrega</button>
+    </div>
+    <div class="tab-panel active" id="tab-desc">
+      <p id="descricaoContent"></p>
+    </div>
+    <div class="tab-panel" id="tab-reviews">
+      <div id="avSummary" class="av-summary"></div>
+      <div id="reviewsList" class="reviews-list"></div>
+      <div class="write-review">
+        <h4>Deixar avaliação</h4>
+        <div class="star-picker" id="starPicker">
+          <button class="sp-star" onclick="setRating(1,this)">★</button>
+          <button class="sp-star" onclick="setRating(2,this)">★</button>
+          <button class="sp-star" onclick="setRating(3,this)">★</button>
+          <button class="sp-star" onclick="setRating(4,this)">★</button>
+          <button class="sp-star" onclick="setRating(5,this)">★</button>
+        </div>
+        <input type="text" id="avName" placeholder="O seu nome (opcional)"/>
+        <textarea id="avText" rows="3" placeholder="Partilhe a sua experiência..."></textarea>
+        <button class="btn btn-red" onclick="submitReview()">Publicar Avaliação</button>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-provas">
+      <p style="font-size:13px;color:#9E9E9E;margin-bottom:16px;">Fotos de entrega enviadas por clientes verificados.</p>
+      <div class="provas-grid" id="provasGrid"></div>
+      <p id="provasEmpty" style="display:none;color:#BDBDBD;font-size:13px;">Ainda sem provas de entrega.</p>
+    </div>
+  </div>
+
+  <!-- RELACIONADOS -->
+  <section class="relacionados-section" id="relacionadosSection" style="display:none;">
+    <h2 class="section-title">Também pode gostar</h2>
+    <div class="products-grid" id="relacionadosGrid"></div>
+  </section>
+</main>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" class="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lbImg" alt="Ampliação"/>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/produto.js"></script>
+</body>
+</html>

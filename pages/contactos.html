@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kimera — Contactos</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/contactos.css" />
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-actions" style="margin-left:auto;">
+      <a href="lojas.html" class="nav-link">Lojas</a>
+      <a href="login.html" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="page-container contactos-main">
+  <div class="contactos-header">
+    <h1>Fale Connosco</h1>
+    <p>Estamos aqui para ajudar</p>
+  </div>
+
+  <div class="contactos-layout">
+    <div class="contact-info">
+      <div class="info-card">
+        <div class="info-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div>
+          <h4>Localização</h4>
+          <p>Moçambique, Maputo, Manhiça</p>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6l.87-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <h4>Telefone</h4>
+          <p>849 368 285</p>
+          <p>834 476 185</p>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div>
+          <h4>Email</h4>
+          <p>janyportacio84@gmail.com</p>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        </div>
+        <div>
+          <h4>Instagram</h4>
+          <p>@kimera.mz</p>
+        </div>
+      </div>
+    </div>
+
+    <form class="contact-form" onsubmit="submitContact(event)">
+      <div class="form-field">
+        <label>O seu nome</label>
+        <input type="text" placeholder="Nome completo..." required />
+      </div>
+      <div class="form-field">
+        <label>Assunto</label>
+        <input type="text" placeholder="Como podemos ajudar?" required />
+      </div>
+      <div class="form-field">
+        <label>A sua mensagem</label>
+        <textarea rows="6" placeholder="Escreva a sua mensagem aqui..." required style="height:auto; padding:14px; resize:vertical;"></textarea>
+      </div>
+      <button type="submit" class="btn btn-red" style="width:100%; padding:16px; font-size:15px;">Submeter →</button>
+    </form>
+  </div>
+</main>
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Rastrear Pedido</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/rastrear.css"/>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-actions" style="margin-left:auto;display:flex;gap:8px;">
+      <a href="/pages/lojas" class="nav-link">Lojas</a>
+      <a href="/pages/carrinho" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span class="cart-badge">0</span>
+      </a>
+      <a href="/pages/login" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+
+  <div class="mobile-nav-drawer" id="mobileNav">
+    <a href="/pages">Home</a>
+    <a href="/pages/lojas">Lojas</a>
+    <a href="/pages/carrinho">Carrinho</a>
+  </div>
+</nav>
+
+<main class="page-container rastrear-main">
+
+  <div class="success-banner" id="successBanner" style="display:none;">
+    <div class="success-icon">✓</div>
+    <div>
+      <h3>Pedido criado com sucesso!</h3>
+      <p>Agora envie o comprovativo por WhatsApp e aguarde a validação do pagamento.</p>
+    </div>
+  </div>
+
+  <div class="rastrear-header">
+    <h1>Rastrear Pedido</h1>
+    <p>Acompanhe a sua encomenda em tempo real</p>
+  </div>
+
+  <div class="search-order">
+    <input type="text" id="orderNum" placeholder="Referência do pedido (ex: KIM-12345678)"/>
+    <button class="btn btn-red" onclick="searchOrder()">Rastrear</button>
+  </div>
+
+  <div class="tracking-card" id="trackingCard" style="display:none;">
+
+    <div class="tracking-product" id="trackingProduct"></div>
+
+    <!-- CAIXA DE VALIDAÇÃO MANUAL -->
+    <div id="paymentValidationBox" style="display:none;margin:18px 0;padding:16px;border:1px solid #E5E7EB;border-radius:14px;background:#FAFAFA;">
+      <div id="paymentValidationContent"></div>
+    </div>
+
+    <div class="tracking-timeline" id="trackingTimeline"></div>
+
+    <!-- PROVA SOCIAL APÓS ENTREGA -->
+    <div class="proof-section" id="proofSection" style="display:none;">
+      <div class="proof-header">
+        <h4>📸 Partilhar a minha entrega</h4>
+        <p>Partilhe uma foto do produto recebido! Será exibida na nossa página como prova de entrega e ajuda outros compradores.</p>
+      </div>
+
+      <div id="proofUploaded" style="display:none;">
+        <div class="proof-uploaded-img" id="proofUploadedImg"></div>
+        <p style="font-size:13px;color:#16A34A;margin-top:8px;font-weight:600;">✓ Foto enviada! Obrigado pelo feedback.</p>
+      </div>
+
+      <div id="proofUploadArea">
+        <div class="upload-area-btn" onclick="document.getElementById('proofFileInput').click()">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <p>Clique para seleccionar foto</p>
+          <span>JPG, PNG até 10MB</span>
+        </div>
+
+        <input type="file" id="proofFileInput" accept="image/*" style="display:none" onchange="previewProof(this)"/>
+
+        <div class="proof-preview" id="proofPreview" style="display:none;">
+          <div class="proof-img-wrap">
+            <img id="proofPreviewImg" alt="Pré-visualização"/>
+            <div class="proof-crop-hint">Arraste para ajustar</div>
+          </div>
+          <div class="proof-actions">
+            <button class="btn btn-outline" onclick="resetProof()">Escolher outra</button>
+            <button class="btn btn-red" id="proofSubmitBtn" onclick="submitProof()">Enviar Foto</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-track" id="emptyTrack" style="display:none;">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#E0E0E0" stroke-width="1">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+    <h3>Pedido não encontrado</h3>
+    <p>Verifique a referência e tente novamente.</p>
+  </div>
+
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/rastrear.js"></script>
+</body>
+</html>

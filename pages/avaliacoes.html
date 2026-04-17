@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kimera — Avaliações</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/avaliacoes.css" />
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages/index.html" class="logo">kimera<span>.</span></a>
+    <div class="nav-actions" style="margin-left:auto;">
+      <a href="/pages/lojas.html" class="nav-link">Lojas</a>
+      <a href="/pages/carrinho.html" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="cart-badge">3</span>
+      </a>
+      <a href="/pages/login.html" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="page-container av-main">
+  <div class="av-product-header">
+    <div class="av-prod-img img-placeholder"></div>
+    <div>
+      <p class="av-store-name">Kimera Store</p>
+      <h1>T-Shirt Kimera</h1>
+      <div class="av-rating-summary">
+        <div class="big-stars" id="bigStars">★★★★★</div>
+        <span class="av-avg" id="avgRating">4.8</span>
+        <span class="av-count" id="ratingCount">(24 avaliações)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="av-layout">
+    <div class="av-left">
+      <div class="av-overview-card">
+        <div class="av-big-number" id="bigAvg">4.8</div>
+        <div class="av-stars-display">★★★★★</div>
+        <p>24 avaliações</p>
+        <div class="av-bars" id="avBars">
+          <div class="av-bar-row"><span>5★</span><div class="av-bar-track"><div class="av-bar-fill" style="width:72%"></div></div><span>17</span></div>
+          <div class="av-bar-row"><span>4★</span><div class="av-bar-track"><div class="av-bar-fill" style="width:17%"></div></div><span>4</span></div>
+          <div class="av-bar-row"><span>3★</span><div class="av-bar-track"><div class="av-bar-fill" style="width:4%"></div></div><span>1</span></div>
+          <div class="av-bar-row"><span>2★</span><div class="av-bar-track"><div class="av-bar-fill" style="width:4%"></div></div><span>1</span></div>
+          <div class="av-bar-row"><span>1★</span><div class="av-bar-track"><div class="av-bar-fill" style="width:4%"></div></div><span>1</span></div>
+        </div>
+      </div>
+
+      <div class="write-review-card">
+        <h3>Deixar Avaliação</h3>
+        <p>Já comprou este produto?</p>
+        <div class="star-picker" id="starPicker">
+          <button class="sp-star" onclick="setRating(1,this)" data-val="1">★</button>
+          <button class="sp-star" onclick="setRating(2,this)" data-val="2">★</button>
+          <button class="sp-star" onclick="setRating(3,this)" data-val="3">★</button>
+          <button class="sp-star" onclick="setRating(4,this)" data-val="4">★</button>
+          <button class="sp-star" onclick="setRating(5,this)" data-val="5">★</button>
+        </div>
+        <span class="rating-label" id="ratingLabel">Seleccione uma classificação</span>
+        <textarea id="reviewText" placeholder="Conte a sua experiência com o produto..." rows="4"></textarea>
+        <input type="text" id="reviewName" placeholder="O seu nome (opcional)" />
+        <button class="btn btn-red" style="width:100%;" onclick="submitReview()">Publicar Avaliação</button>
+      </div>
+    </div>
+
+    <div class="av-right">
+      <div class="av-filters">
+        <button class="av-filter-btn active" onclick="filterReviews('todos',this)">Todos</button>
+        <button class="av-filter-btn" onclick="filterReviews(5,this)">5★</button>
+        <button class="av-filter-btn" onclick="filterReviews(4,this)">4★</button>
+        <button class="av-filter-btn" onclick="filterReviews(3,this)">3★</button>
+        <button class="av-filter-btn" onclick="filterReviews(2,this)">2★</button>
+        <button class="av-filter-btn" onclick="filterReviews(1,this)">1★</button>
+      </div>
+
+      <div class="reviews-feed" id="reviewsFeed">
+
+        <div class="review-item" data-rating="5">
+          <div class="ri-header">
+            <div class="ri-avatar">JC</div>
+            <div>
+              <p class="ri-name">Jani Carlos</p>
+              <div class="ri-stars">★★★★★</div>
+            </div>
+            <span class="ri-date">12 Jan 2025</span>
+            <span class="ri-verified">✓ Compra verificada</span>
+          </div>
+          <p class="ri-text">Qualidade excelente! A camiseta ficou exactamente como eu queria. O tecido é super confortável e a estampagem ficou impecável. Vou definitivamente comprar mais!</p>
+          <div class="ri-helpful">
+            <span>Esta avaliação foi útil?</span>
+            <button onclick="markHelpful(this)">👍 Sim (8)</button>
+            <button onclick="markNotHelpful(this)">👎 Não (1)</button>
+          </div>
+          <div class="ri-store-reply">
+            <div class="reply-avatar">KS</div>
+            <div>
+              <p class="reply-author">Kimera Store <span class="reply-badge">Loja</span></p>
+              <p class="reply-text">Obrigado Jani! Fico feliz que tenha ficado satisfeito com a sua compra. Até a próxima! 🙏</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-item" data-rating="4">
+          <div class="ri-header">
+            <div class="ri-avatar" style="background:#1565C0;">MC</div>
+            <div>
+              <p class="ri-name">Maria Cossa</p>
+              <div class="ri-stars" style="color:#F59E0B;">★★★★☆</div>
+            </div>
+            <span class="ri-date">10 Jan 2025</span>
+            <span class="ri-verified">✓ Compra verificada</span>
+          </div>
+          <p class="ri-text">Produto muito bom! Só acho que devia ter mais opções de tamanho. O M ficou um pouco grande para mim. Mas a qualidade é boa e a entrega foi rápida.</p>
+          <div class="ri-helpful">
+            <span>Esta avaliação foi útil?</span>
+            <button onclick="markHelpful(this)">👍 Sim (5)</button>
+            <button onclick="markNotHelpful(this)">👎 Não (0)</button>
+          </div>
+        </div>
+
+        <div class="review-item" data-rating="5">
+          <div class="ri-header">
+            <div class="ri-avatar" style="background:#2E7D32;">TB</div>
+            <div>
+              <p class="ri-name">Tomás Bila</p>
+              <div class="ri-stars">★★★★★</div>
+            </div>
+            <span class="ri-date">08 Jan 2025</span>
+            <span class="ri-verified">✓ Compra verificada</span>
+          </div>
+          <p class="ri-text">Recomendo muito! Já é a terceira vez que compro na Kimera e nunca decepcionou. A personalização ficou perfeita.</p>
+          <div class="ri-helpful">
+            <span>Esta avaliação foi útil?</span>
+            <button onclick="markHelpful(this)">👍 Sim (12)</button>
+            <button onclick="markNotHelpful(this)">👎 Não (0)</button>
+          </div>
+        </div>
+
+        <div class="review-item" data-rating="3">
+          <div class="ri-header">
+            <div class="ri-avatar" style="background:#6A1B9A;">AM</div>
+            <div>
+              <p class="ri-name">Ana Machava</p>
+              <div class="ri-stars" style="color:#F59E0B;">★★★☆☆</div>
+            </div>
+            <span class="ri-date">05 Jan 2025</span>
+            <span class="ri-verified">✓ Compra verificada</span>
+          </div>
+          <p class="ri-text">Produto razoável. A qualidade é aceitável mas esperava melhor pelo preço. A entrega demorou mais do que o esperado.</p>
+          <div class="ri-helpful">
+            <span>Esta avaliação foi útil?</span>
+            <button onclick="markHelpful(this)">👍 Sim (2)</button>
+            <button onclick="markNotHelpful(this)">👎 Não (3)</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/avaliacoes.js"></script>
+</body>
+</html>

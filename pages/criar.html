@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kimera — Criar Peça</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/criar.css"/>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/pages" class="logo">kimera<span>.</span></a>
+
+    <div class="nav-search">
+      <svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" placeholder="Pesquisar..." onkeydown="handleSearch(event)"/>
+    </div>
+
+    <div class="nav-actions">
+      <a href="/pages/lojas" class="nav-link">Lojas</a>
+      <a href="/pages/criar" class="nav-link active">Criar</a>
+
+      <a href="/pages/carrinho" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span class="cart-badge">0</span>
+      </a>
+
+      <a href="/pages/login" class="nav-icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </a>
+
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-nav-drawer" id="mobileNav">
+    <a href="/pages">Home</a>
+    <a href="/pages/lojas">Lojas</a>
+    <a href="/pages/carrinho">Carrinho</a>
+    <a href="/pages/rastrear">Rastrear</a>
+  </div>
+</nav>
+
+<main class="criar-main page-container">
+  <div class="criar-header">
+    <h1>Criar a minha peça personalizada</h1>
+    <p>Frente e costas com mockup real, troca de cor da peça e área segura de impressão</p>
+  </div>
+
+  <div class="criar-layout">
+
+    <!-- PREVIEW -->
+    <div class="editor-panel">
+      <div class="view-tabs">
+        <button class="view-tab active" onclick="setView('frente',this)">Frente</button>
+        <button class="view-tab" onclick="setView('costas',this)">Costas</button>
+      </div>
+
+      <div class="canvas-wrap" style="position:relative;">
+        <canvas id="shirtCanvas" width="500" height="700" style="width:100%;max-width:500px;height:auto;display:block;margin:0 auto;border-radius:16px;background:#f3f3f3;"></canvas>
+        <div class="canvas-hint">Arraste a imagem dentro do quadrado · Use o zoom para ajustar</div>
+      </div>
+
+      <div class="editor-tools">
+        <button class="tool-btn" onclick="toggleTextPanel()">
+          Adicionar Texto
+        </button>
+
+        <button class="tool-btn" onclick="triggerImageUpload()">
+          Adicionar Imagem
+        </button>
+
+        <button class="tool-btn" onclick="clearCurrentViewDesign()" style="color:#DC2626;">
+          Limpar esta vista
+        </button>
+      </div>
+
+      <!-- TEXTO -->
+      <div class="text-panel" id="textPanel" style="display:none;gap:10px;flex-wrap:wrap;">
+        <input
+          type="text"
+          id="customText"
+          placeholder="Escreva o texto aqui..."
+          oninput="updateText(this.value)"
+          style="flex:1;height:42px;padding:0 12px;border:1.5px solid #E0E0E0;border-radius:8px;font-size:14px;"
+        />
+
+        <select onchange="updateFont(this.value)" style="height:42px;padding:0 10px;border:1.5px solid #E0E0E0;border-radius:8px;font-size:13px;">
+          <option value="Inter">Inter</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Impact">Impact</option>
+          <option value="monospace">Mono</option>
+        </select>
+      </div>
+
+      <!-- CORES DO TEXTO -->
+      <div class="option-section">
+        <h3>Cor do texto</h3>
+        <div class="color-swatches" id="textColorSwatches">
+          <button class="swatch active" style="background:#111111;" onclick="setTextColor('#111111',this)" title="Preto"></button>
+          <button class="swatch" style="background:#FFFFFF;border:2px solid #ccc;" onclick="setTextColor('#FFFFFF',this)" title="Branco"></button>
+          <button class="swatch" style="background:#E53935;" onclick="setTextColor('#E53935',this)" title="Vermelho"></button>
+          <button class="swatch" style="background:#1565C0;" onclick="setTextColor('#1565C0',this)" title="Azul"></button>
+          <button class="swatch" style="background:#2E7D32;" onclick="setTextColor('#2E7D32',this)" title="Verde"></button>
+          <button class="swatch" style="background:#F9A825;" onclick="setTextColor('#F9A825',this)" title="Amarelo"></button>
+          <button class="swatch" style="background:#6A1B9A;" onclick="setTextColor('#6A1B9A',this)" title="Roxo"></button>
+          <button class="swatch" style="background:#F06292;" onclick="setTextColor('#F06292',this)" title="Rosa"></button>
+          <button class="swatch" style="background:#546E7A;" onclick="setTextColor('#546E7A',this)" title="Cinza"></button>
+          <button class="swatch" style="background:#795548;" onclick="setTextColor('#795548',this)" title="Castanho"></button>
+        </div>
+      </div>
+
+      <!-- ZOOM -->
+      <div class="zoom-row" id="zoomRow" style="display:flex;align-items:center;gap:10px;margin-top:14px;">
+        <label style="font-size:12px;color:#9E9E9E;">Zoom da imagem</label>
+        <input type="range" id="zoomInput" min="30" max="300" value="100" step="5" oninput="updateDesignZoom(this.value)" style="flex:1;"/>
+        <span id="zoomVal" style="font-size:12px;color:#9E9E9E;min-width:44px;">100%</span>
+      </div>
+
+      <input type="file" id="designUpload" accept="image/*" style="display:none" onchange="handleDesignUpload(this)"/>
+    </div>
+
+    <!-- OPÇÕES -->
+    <div class="options-panel">
+
+      <div class="option-section">
+        <h3>Cor da camiseta</h3>
+        <div class="color-swatches">
+          <button class="swatch active" style="background:#111111;" onclick="setShirtColor('#111111',this)" title="Preto"></button>
+          <button class="swatch" style="background:#FFFFFF;border:2px solid #ccc;" onclick="setShirtColor('#FFFFFF',this)" title="Branco"></button>
+        </div>
+      </div>
+
+      <div class="option-section">
+        <h3>Tipo de camiseta</h3>
+        <div class="type-grid">
+          <button class="type-btn active" onclick="setType('Regular Size',this)">Regular Size</button>
+          <button class="type-btn" onclick="setType('Over Size',this)">Over Size</button>
+        </div>
+      </div>
+
+      <div class="option-section">
+        <h3>Tamanho</h3>
+        <div class="size-grid">
+          <button class="size-btn" onclick="setSize('XS',this)">XS</button>
+          <button class="size-btn" onclick="setSize('S',this)">S</button>
+          <button class="size-btn active" onclick="setSize('M',this)">M</button>
+          <button class="size-btn" onclick="setSize('L',this)">L</button>
+          <button class="size-btn" onclick="setSize('XL',this)">XL</button>
+          <button class="size-btn" onclick="setSize('XXL',this)">XXL</button>
+        </div>
+      </div>
+
+      <div class="option-section">
+        <h3>Quantidade</h3>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <input type="number" id="qtyInput" value="1" min="1" max="99" onchange="updateQtyInput()"/>
+          <button class="qty-btn" onclick="changeQty(+1)">+</button>
+        </div>
+      </div>
+
+      <div class="price-summary">
+        <div class="price-row"><span>Peça base</span><span>700,00 MT</span></div>
+        <div class="price-row"><span>Personalização</span><span id="customPrice">0,00 MT</span></div>
+        <div class="price-row"><span>Preço por unidade</span><span id="unitPrice">700,00 MT</span></div>
+        <div class="price-row price-total"><span>Total (×<span id="qtyDisplay">1</span>)</span><span id="totalPrice">700,00 MT</span></div>
+      </div>
+
+      <button class="btn btn-red" style="width:100%;padding:16px;font-size:15px;" onclick="addCustomToCart()">
+        Adicionar ao Carrinho
+      </button>
+    </div>
+  </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/global.js"></script>
+<script src="../js/criar.js"></script>
+</body>
+</html>
