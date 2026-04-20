@@ -84,6 +84,82 @@ function isLightHexColor(hex = '') {
   return luminance > 200;
 }
 
+function normalizeProductVariants(value = []) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+
+  if (typeof value === 'string') {
+    const raw = value.trim();
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function getProductVariants() {
+  return normalizeProductVariants(produto?.variants || []);
+}
+
+function getUniqueVariantSizes(variants = []) {
+  return [...new Set(
+    variants.map(v => String(v.size || '').trim()).filter(Boolean)
+  )];
+}
+
+function getUniqueVariantColors(variants = []) {
+  const seen = new Map();
+
+  variants.forEach(v => {
+    const name = String(v.color_name || '').trim();
+    const hex = String(v.color_hex || '').trim();
+    const key = `${name}__${hex}`;
+
+    if (!name && !hex) return;
+    if (!seen.has(key)) {
+      seen.set(key, normalizeProductColor({ name, hex }));
+    }
+  });
+
+  return Array.from(seen.values());
+}
+
+function findSelectedVariant() {
+  const variants = getProductVariants();
+  if (!variants.length) return null;
+
+  const selectedColorName = selectedColor?.name || '';
+  const selectedColorHex = selectedColor?.hex || '';
+
+  return variants.find(v => {
+    const sameSize = String(v.size || '') === String(selectedSize || '');
+    const sameColorName = String(v.color_name || '') === String(selectedColorName || '');
+    const sameColorHex = String(v.color_hex || '').toUpperCase() === String(selectedColorHex || '').toUpperCase();
+
+    return sameSize && (sameColorName || sameColorHex);
+  }) || null;
+}
+
+function getEffectiveStock() {
+  const variants = getProductVariants();
+
+  if (variants.length) {
+    const variant = findSelectedVariant();
+    return variant ? Math.max(0, parseInt(variant.stock || 0, 10)) : 0;
+  }
+
+  return Math.max(0, Number(produto?.stock ?? 0));
+}
+
+function hasVariants() {
+  return getProductVariants().length > 0;
+}
+
 function normalizeProductColor(color) {
   if (!color) {
     return { hex: '', name: '', swatch: '#F5F5F5' };
@@ -252,9 +328,19 @@ function renderProduto() {
 
   renderGaleria(p);
 
+  const variants = getProductVariants();
   const sizesGroup = qs('sizesGroup');
   const sizeGrid = qs('sizeGrid');
-  const sizes = normalizeProductList(p.sizes);
+  const colorsGroup = qs('colorsGroup');
+  const colorGrid = qs('colorGrid');
+
+  const sizes = variants.length
+    ? getUniqueVariantSizes(variants)
+    : normalizeProductList(p.sizes);
+
+  const colors = variants.length
+    ? getUniqueVariantColors(variants)
+    : normalizeProductList(p.colors).map(normalizeProductColor).filter(c => c.name || c.hex);
 
   if (sizesGroup && sizeGrid && sizes.length) {
     sizesGroup.style.display = 'block';
@@ -267,34 +353,30 @@ function renderProduto() {
     sizesGroup.style.display = 'none';
   }
 
-  const colorsGroup = qs('colorsGroup');
-  const colorGrid = qs('colorGrid');
-  const colors = normalizeProductList(p.colors).map(normalizeProductColor).filter(c => c.name || c.hex);
-
   if (colorsGroup && colorGrid && colors.length) {
     colorsGroup.style.display = 'block';
 
     colorGrid.innerHTML = colors.map(c => `
-  <button class="swatch-btn ${isLightHexColor(c.swatch) ? 'light' : ''}"
-    style="background:${c.swatch};"
-    data-name="${String(c.name || '').replace(/"/g, '&quot;')}"
-    data-hex="${String(c.hex || '').replace(/"/g, '&quot;')}"
-    onclick="setColor('${String(c.name || '').replace(/'/g, "\\'")}', '${String(c.hex || '').replace(/'/g, "\\'")}', this)"
-    title="${c.name}"
-    aria-label="${c.name}">
-  </button>
-`).join('');
+      <button class="swatch-btn ${isLightHexColor(c.swatch) ? 'light' : ''}"
+        style="background:${c.swatch};"
+        data-name="${String(c.name || '').replace(/"/g, '&quot;')}"
+        data-hex="${String(c.hex || '').replace(/"/g, '&quot;')}"
+        onclick="setColor('${String(c.name || '').replace(/'/g, "\\'")}', '${String(c.hex || '').replace(/'/g, "\\'")}', this)"
+        title="${c.name}"
+        aria-label="${c.name}">
+      </button>
+    `).join('');
   } else if (colorsGroup) {
     colorsGroup.style.display = 'none';
   }
-  
-const qtyInput = qs('qtyInput');
-if (qtyInput) {
-  const stock = Number(p?.stock ?? 0);
-  qtyInput.value = 1;
-  qtyInput.min = 1;
-  qtyInput.max = stock > 0 ? stock : 1;
-}
+
+  const qtyInput = qs('qtyInput');
+  if (qtyInput) {
+    qtyInput.value = 1;
+    qtyInput.min = 1;
+    qtyInput.max = 1;
+  }
+
   renderStock(p);
   renderStoreInfo(p);
 }
@@ -340,7 +422,71 @@ function renderStock(p) {
   const stockInfo = qs('stockInfo');
   const btnCart = qs('btnCart');
   const btnBuy = qs('btnBuy');
+  const qtyInput = qs('qtyInput');
+
   if (!stockInfo) return;
+
+  if (hasVariants()) {
+    const needsSize = getUniqueVariantSizes(getProductVariants()).length > 0 && !selectedSize;
+    const needsColor = getUniqueVariantColors(getProductVariants()).length > 0 && !selectedColor;
+
+    if (needsSize || needsColor) {
+      stockInfo.textContent = 'Selecione a cor e o tamanho';
+      stockInfo.className = 'stock-info';
+      if (btnCart) btnCart.disabled = true;
+      if (btnBuy) btnBuy.disabled = true;
+      if (qtyInput) {
+        qtyInput.value = 1;
+        qtyInput.min = 1;
+        qtyInput.max = 1;
+      }
+      return;
+    }
+
+    const variant = findSelectedVariant();
+
+    if (!variant) {
+      stockInfo.textContent = 'Combinação indisponível';
+      stockInfo.className = 'stock-info out';
+      if (btnCart) btnCart.disabled = true;
+      if (btnBuy) btnBuy.disabled = true;
+      if (qtyInput) {
+        qtyInput.value = 1;
+        qtyInput.min = 1;
+        qtyInput.max = 1;
+      }
+      return;
+    }
+
+    const stock = Math.max(0, parseInt(variant.stock || 0, 10));
+
+    if (stock <= 0) {
+      stockInfo.textContent = 'Sem stock';
+      stockInfo.className = 'stock-info out';
+      if (btnCart) btnCart.disabled = true;
+      if (btnBuy) btnBuy.disabled = true;
+    } else if (stock < 5) {
+      stockInfo.textContent = `Apenas ${stock} em stock!`;
+      stockInfo.className = 'stock-info low';
+      if (btnCart) btnCart.disabled = false;
+      if (btnBuy) btnBuy.disabled = false;
+    } else {
+      stockInfo.textContent = `${stock} disponíveis`;
+      stockInfo.className = 'stock-info';
+      if (btnCart) btnCart.disabled = false;
+      if (btnBuy) btnBuy.disabled = false;
+    }
+
+    if (qtyInput) {
+      const current = Math.max(1, parseInt(qtyInput.value || 1, 10));
+      qtyInput.value = Math.min(current, Math.max(1, stock > 0 ? stock : 1));
+      qtyInput.min = 1;
+      qtyInput.max = Math.max(1, stock > 0 ? stock: 1);
+    }
+    syncQtyInputWithStock();
+
+    return;
+  }
 
   const stock = Number(p?.stock ?? 0);
 
@@ -359,6 +505,13 @@ function renderStock(p) {
     stockInfo.className = 'stock-info';
     if (btnCart) btnCart.disabled = false;
     if (btnBuy) btnBuy.disabled = false;
+  }
+
+  if (qtyInput) {
+    const current = Math.max(1, parseInt(qtyInput.value || 1, 10));
+    qtyInput.value = Math.min(current, Math.max(1, stock));
+    qtyInput.min = 1;
+    qtyInput.max = Math.max(1, stock > 0 ? stock : 1);
   }
 }
 
@@ -402,6 +555,8 @@ function setSize(size, btn) {
   selectedSize = size;
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  renderStock(produto);
+  syncQtyInputWithStock();
 }
 
 function setColor(name, hex, btn) {
@@ -411,22 +566,75 @@ function setColor(name, hex, btn) {
   if (btn) btn.classList.add('active');
 
   setText('colorLabel', name || 'Cor');
+  renderStock(produto);
+  syncQtyInputWithStock();
+}
+
+function syncQtyInputWithStock() {
+  const inp = qs('qtyInput');
+  if (!inp) return;
+
+  const stock = getEffectiveStock();
+  const maxQty = stock > 0 ? stock : 1;
+  let current = parseInt(inp.value || 1, 10);
+
+  if (!Number.isFinite(current) || current < 1) {
+    current = 1;
+  }
+
+  if (current > maxQty) {
+    current = maxQty;
+    showToast(`Só existem ${maxQty} unidades disponíveis desta opção.`, 'info');
+  }
+
+  inp.value = current;
+  inp.min = 1;
+  inp.max = maxQty;
 }
 
 function changeQty(delta) {
   const inp = qs('qtyInput');
   if (!inp) return;
 
-  const stock = Number(produto?.stock ?? 0);
+  const stock = getEffectiveStock();
   const current = parseInt(inp.value || 1, 10);
 
   const maxQty = stock > 0 ? stock : 1;
   const next = Math.max(1, Math.min(maxQty, current + delta));
 
   inp.value = next;
+  syncQtyInputWithStock();
 }
 
 function validateOptions() {
+  const variants = getProductVariants();
+
+  if (variants.length) {
+    if (getUniqueVariantSizes(variants).length && !selectedSize) {
+      showToast('Seleccione um tamanho.', 'error');
+      return false;
+    }
+
+    if (getUniqueVariantColors(variants).length && !selectedColor) {
+      showToast('Seleccione uma cor.', 'error');
+      return false;
+    }
+
+    const variant = findSelectedVariant();
+
+    if (!variant) {
+      showToast('Essa combinação de cor e tamanho não está disponível.', 'error');
+      return false;
+    }
+
+    if (parseInt(variant.stock || 0, 10) <= 0) {
+      showToast('Esta variante está sem stock.', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
   if (normalizeProductList(produto?.sizes).length && !selectedSize) {
     showToast('Seleccione um tamanho.', 'error');
     return false;
@@ -442,8 +650,24 @@ function validateOptions() {
 
 function handleAddToCart() {
   if (!validateOptions()) return;
+
   const qty = parseInt(document.getElementById('qtyInput')?.value || 1, 10);
-  addToCart(produto, selectedSize, selectedColor, qty);
+  const variant = findSelectedVariant();
+
+  const productToCart = variant
+    ? {
+        ...produto,
+        stock: parseInt(variant.stock || 0, 10),
+        selected_variant: {
+          color_name: variant.color_name,
+          color_hex: variant.color_hex,
+          size: variant.size,
+          stock: parseInt(variant.stock || 0, 10)
+        }
+      }
+    : produto;
+
+  addToCart(productToCart, selectedSize, selectedColor, qty);
 }
 
 function handleBuyNow() {
@@ -731,4 +955,16 @@ function fmtDate(iso) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadProduto);
+document.addEventListener('DOMContentLoaded', () => {
+  loadProduto();
+
+  const qtyInput = qs('qtyInput');
+  if(qtyInput){
+    qtyInput.addEventListener('input', () => {
+      syncQtyInputWithStock();
+    });
+    qtyInput.addEventListener('blur', () => {
+      syncQtyInputWithStock();
+    });
+  }
+}); 

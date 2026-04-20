@@ -429,14 +429,15 @@ function isLightPresetColor(hex = '') {
 
 function syncHiddenProductColorsInput() {
   const selected = Array.from(document.querySelectorAll('.vendor-color-chip.active'))
-    .map(btn => {
-      const hex = btn.dataset.hex;
-      const name = btn.dataset.name;
-      return `${hex}(${name})`;
-    });
+    .map(btn => ({
+      name: btn.dataset.name,
+      hex: btn.dataset.hex
+    }));
 
   const input = document.getElementById('prodColors');
-  if (input) input.value = selected.join(',');
+  if (input) input.value = JSON.stringify(selected);
+
+  generateVariantsMatrix();
 }
 
 function renderProductColorPresetPicker(selectedColors = []) {
@@ -484,10 +485,12 @@ function openNovoProduto() {
   document.getElementById('prodDesc').value = '';
   document.getElementById('prodCategory').value = '';
   document.getElementById('prodSizes').value = '';
-  document.getElementById('prodColors').value = '';
+  document.getElementById('prodColors').value = '[]';
+document.getElementById('prodVariants').value = '[]';
   document.getElementById('prodDiscount').value = '';
   document.getElementById('prodFeatured').checked = false;
   document.getElementById('prodIsNew').checked = true;
+  generateVariantsMatrix();
 
   const mainInput = document.getElementById('prodMainImg');
   const galleryInput = document.getElementById('prodGallery');
@@ -519,6 +522,10 @@ async function saveProduto() {
   const name = document.getElementById('prodName').value.trim();
   const price = parseFloat(document.getElementById('prodPrice').value);
 
+  const variants = getVariantsFromHidden();
+  const totalStock = variants.reduce((sum, v) => sum + Math.max(0, parseInt(v.stock || 0, 10)), 0);
+  const selectedColors = parseSelectedColorsInput();
+
   if (!name || !price) {
     showToast('Nome e preço obrigatórios.', 'error');
     return;
@@ -546,13 +553,14 @@ async function saveProduto() {
       store_name: myStoreData?.name || '',
       name,
       price,
-      stock: parseInt(document.getElementById('prodStock').value || '0', 10) || 0,
+      variants: variants,
+      stock: totalStock,
       original_price: parseFloat(document.getElementById('prodOrigPrice').value || price) || price,
       category: document.getElementById('prodCategory').value || '',
       discount_pct: parseInt(document.getElementById('prodDiscount').value || '0', 10) || 0,
       description: document.getElementById('prodDesc').value || '',
       sizes: document.getElementById('prodSizes').value.split(',').map(s => s.trim()).filter(Boolean),
-      colors: parseColorsInput(document.getElementById('prodColors').value),
+      colors: selectedColors,
       is_featured: document.getElementById('prodFeatured').checked,
       is_new: document.getElementById('prodIsNew').checked,
       is_active: true,
@@ -612,12 +620,19 @@ async function editProduto(id) {
   document.getElementById('prodDesc').value = p.description || '';
   document.getElementById('prodCategory').value = p.category || '';
   document.getElementById('prodSizes').value = (p.sizes || []).join(',');
-  document.getElementById('prodColors').value = colorsToInput(p.colors || []);
+  document.getElementById('prodColors').value = JSON.stringify(
+    (p.colors || []).map(c => ({
+      name: c.name || c.color_name || '',
+      hex: c.hex || c.color_hex || ''
+    }))
+  );
+  document.getElementById('prodVariants').value = JSON.stringify(p.variants || []);
   document.getElementById('prodDiscount').value = p.discount_pct || '';
   document.getElementById('prodFeatured').checked = !!p.is_featured;
   document.getElementById('prodIsNew').checked = !!p.is_new;
 
   renderProductColorPresetPicker(p.colors || []);
+  generateVariantsMatrix();
 
   if (p.thumbnail_url) {
     const img = document.getElementById('mainImgCropImg');
@@ -750,6 +765,155 @@ function stopDashboardPolling() {
     dashboardPollInterval = null;
   }
 }
+
+/*Estas funções:
+	•	leem tamanhos
+	•	leem cores selecionadas
+	•	geram variantes
+	•	preservam stock já preenchido
+	•	recalculam stock total */
+
+  function parseSizesInput(value) {
+  return String(value || '')
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+function parseSelectedColorsInput() {
+  const raw = document.getElementById('prodColors')?.value || '[]';
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map(c => ({
+        name: c.name || c.color_name || '',
+        hex: c.hex || c.color_hex || ''
+      })).filter(c => c.name);
+    }
+  } catch {}
+
+  return [];
+}
+
+function getVariantsFromHidden() {
+  const raw = document.getElementById('prodVariants')?.value || '[]';
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildVariantKey(colorName, size) {
+  return `${colorName}__${size}`;
+}
+
+function generateVariantsMatrix() {
+  const sizes = parseSizesInput(document.getElementById('prodSizes')?.value || '');
+  const colors = parseSelectedColorsInput();
+  const oldVariants = getVariantsFromHidden();
+
+  const variantsMap = {};
+  oldVariants.forEach(v => {
+    variantsMap[buildVariantKey(v.color_name, v.size)] = v;
+  });
+
+  const variants = [];
+
+  for (const color of colors) {
+    for (const size of sizes) {
+      const key = buildVariantKey(color.name, size);
+      const existing = variantsMap[key];
+
+      variants.push({
+        color_name: color.name,
+        color_hex: color.hex,
+        size,
+        stock: existing ? parseInt(existing.stock || 0, 10) : 0
+      });
+    }
+  }
+
+  const hidden = document.getElementById('prodVariants');
+  if (hidden) hidden.value = JSON.stringify(variants);
+
+  renderVariantsTable(variants);
+  syncTotalStockFromVariants();
+}
+
+function renderVariantsTable(variants = []) {
+  const wrap = document.getElementById('prodVariantsWrap');
+  const table = document.getElementById('prodVariantsTable');
+
+  if (!wrap || !table) return;
+
+  if (!variants.length) {
+    wrap.style.display = 'none';
+    table.innerHTML = '';
+    return;
+  }
+
+  wrap.style.display = 'block';
+
+  table.innerHTML = `
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Cor</th>
+          <th>Tamanho</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${variants.map((v, i) => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:14px;height:14px;border-radius:50%;background:${v.color_hex || '#ddd'};border:1px solid #ccc;display:inline-block;"></span>
+                <span>${v.color_name}</span>
+              </div>
+            </td>
+            <td>${v.size}</td>
+            <td>
+              <input
+                type="number"
+                min="0"
+                value="${parseInt(v.stock || 0, 10)}"
+                style="width:90px;height:38px;padding:0 10px;border:1px solid #ddd;border-radius:8px;"
+                oninput="updateVariantStock(${i}, this.value)"
+              />
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+}
+
+function updateVariantStock(index, value) {
+  const variants = getVariantsFromHidden();
+  if (!variants[index]) return;
+
+  variants[index].stock = Math.max(0, parseInt(value || 0, 10));
+
+  const hidden = document.getElementById('prodVariants');
+  if (hidden) hidden.value = JSON.stringify(variants);
+
+  syncTotalStockFromVariants();
+}
+
+function syncTotalStockFromVariants() {
+  const variants = getVariantsFromHidden();
+  const total = variants.reduce((sum, v) => sum + Math.max(0, parseInt(v.stock || 0, 10)), 0);
+
+  const stockInput = document.getElementById('prodStock');
+  if (stockInput) stockInput.value = total;
+}
+
 
 function filterStoreOrders(status, btn) {
   document.querySelectorAll('.otab').forEach(b => b.classList.remove('active'));

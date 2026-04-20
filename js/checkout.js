@@ -329,7 +329,7 @@ function sanitizeOrderItems(items = []) {
   return items.map(item => {
     const normalized = normalizeCartItem(item);
 
-    return {
+    const clean = {
       product_id: normalized.product_id,
       name: normalized.name,
       quantity: normalized.quantity,
@@ -339,7 +339,79 @@ function sanitizeOrderItems(items = []) {
       color_hex: normalized.color_hex,
       thumbnail_url: normalized.thumbnail_url
     };
+
+    if (normalized.customization) {
+      clean.customization = normalized.customization;
+    }
+
+    return clean;
   });
+}
+
+async function validateCartStockBeforeOrder(items = []) {
+  for (const rawItem of items) {
+    const item = normalizeCartItem(rawItem);
+    const productId = item.product_id || null;
+    const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+
+    if (!productId || String(productId).startsWith('custom-')) {
+      continue;
+    }
+
+    const rows = await sbGet(
+      'products',
+      `?id=eq.${productId}&select=id,name,stock,variants`
+    );
+
+    const product = rows?.[0];
+    if (!product) {
+      throw new Error(`O produto "${item.name || 'Produto'}" já não está disponível.`);
+    }
+
+    let variants = [];
+    if (Array.isArray(product.variants)) {
+      variants = product.variants;
+    } else {
+      try {
+        const parsed = JSON.parse(product.variants || '[]');
+        variants = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        variants = [];
+      }
+    }
+
+    if (variants.length) {
+      const itemSize = String(item.size || '').trim();
+      const itemColorName = String(item.color_name || '').trim();
+      const itemColorHex = String(item.color_hex || '').trim().toUpperCase();
+
+      const variant = variants.find(v => {
+        const sameSize = String(v.size || '').trim() === itemSize;
+        const sameColorName = String(v.color_name || '').trim() === itemColorName;
+        const sameColorHex = String(v.color_hex || '').trim().toUpperCase() === itemColorHex;
+
+        return sameSize && (sameColorName || sameColorHex);
+      });
+
+      if (!variant) {
+        throw new Error(`A variante escolhida para "${product.name}" já não está disponível.`);
+      }
+
+      const variantStock = Math.max(0, parseInt(variant.stock || 0, 10));
+
+      if (qty > variantStock) {
+        throw new Error(`Stock insuficiente para "${product.name}" (${itemColorName || itemColorHex || 'cor'} / ${itemSize || 'sem tamanho'}). Disponível: ${variantStock}.`);
+      }
+
+      continue;
+    }
+
+    const productStock = Math.max(0, parseInt(product.stock || 0, 10));
+
+    if (qty > productStock) {
+      throw new Error(`Stock insuficiente para "${product.name}". Disponível: ${productStock}.`);
+    }
+  }
 }
 
 async function createOrdersManual(formData) {
@@ -681,6 +753,13 @@ function openWhatsAppBridgeTab(bridgeTab, waUrl, encodedMessage, primaryRef) {
 async function placeOrderWhatsApp() {
   const form = validateForm();
   if (!form) return;
+
+  try {
+    await validateCartStockBeforeOrder(cartItems);
+  } catch (e) {
+    showToast(e.message || 'Alguns produtos já não têm stock suficiente.', 'error');
+    return;
+  }
 
   const bridgeTab = window.open('', '_blank');
 

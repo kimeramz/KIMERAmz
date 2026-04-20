@@ -89,6 +89,11 @@ window.quickApproveOrder = async function (id) {
     return;
   }
 
+  if (order.payment_status === 'paid') {
+    showToast('Este pedido já foi confirmado antes.', 'info');
+    return;
+  }
+
   const txRef = prompt('Introduza a referência da transação:');
   if (!txRef) return;
 
@@ -113,14 +118,18 @@ window.quickApproveOrder = async function (id) {
   try {
     await sbPatch('orders', id, payload);
 
+    /* baixar stock só após confirmação do pagamento */
+    await decrementOrderStock(order);
+
+    /* libertar KIMERA Criar para revisão */
+    await moveCustomProjectsToPendingReview(order.order_ref);
+
     const check = await sbGet(
       'orders',
       `?id=eq.${id}&select=id,order_ref,store_id,status,payment_status,register_code,payment_tx_ref,payment_receipt_code`
     );
 
     console.log('[ADMIN] pedido após quickApproveOrder:', check?.[0]);
-
-    await moveCustomProjectsToPendingReview(order.order_ref);
 
     showToast('Pagamento confirmado com sucesso!');
     await loadOrders(true);
@@ -340,6 +349,121 @@ async function updateCustomProjectStatusFromTable(id, selectEl) {
     console.error('[Admin] updateCustomProjectStatusFromTable:', e);
     showToast('Erro ao actualizar estado da criação.', 'error');
     selectEl.value = project.status;
+  }
+}
+
+async function decrementOrderStock(order) {
+  if (!order?.items?.length) return;
+
+  for (const rawItem of order.items) {
+    const item = typeof normalizeCartItem === 'function'
+      ? normalizeCartItem(rawItem)
+      : rawItem;
+
+    const productId = item.product_id || item.id || null;
+    const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+
+    if (!productId) continue;
+
+    try {
+      const rows = await sbGet(
+        'products',
+        `?id=eq.${productId}&select=id,name,stock,variants`
+      );
+
+      const product = rows?.[0];
+      if (!product) {
+        console.warn('[ADMIN] Produto não encontrado para baixar stock:', productId);
+        continue;
+      }
+
+      const variants = Array.isArray(product.variants)
+        ? product.variants
+        : (() => {
+            try {
+              const parsed = JSON.parse(product.variants || '[]');
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          })();
+
+      const itemSize = String(item.size || '').trim();
+      const itemColorName = String(item.color_name || '').trim();
+      const itemColorHex = String(item.color_hex || '').trim().toUpperCase();
+
+      if (variants.length) {
+        let changed = false;
+
+        const updatedVariants = variants.map(v => {
+          const variantSize = String(v.size || '').trim();
+          const variantColorName = String(v.color_name || '').trim();
+          const variantColorHex = String(v.color_hex || '').trim().toUpperCase();
+
+          const sameSize = variantSize === itemSize;
+          const sameColor =
+            (itemColorName && variantColorName === itemColorName) ||
+            (itemColorHex && variantColorHex === itemColorHex);
+
+          if (sameSize && sameColor) {
+            const currentVariantStock = Math.max(0, parseInt(v.stock || 0, 10));
+            const newVariantStock = Math.max(0, currentVariantStock - qty);
+
+            changed = true;
+
+            return {
+              ...v,
+              stock: newVariantStock
+            };
+          }
+
+          return v;
+        });
+
+        if (changed) {
+          const totalStock = updatedVariants.reduce((sum, v) => {
+            return sum + Math.max(0, parseInt(v.stock || 0, 10));
+          }, 0);
+
+          await sbPatch('products', productId, {
+            variants: updatedVariants,
+            stock: totalStock
+          });
+
+          console.log('[ADMIN] Stock por variante atualizado:', {
+            product_id: productId,
+            product_name: product.name,
+            size: itemSize,
+            color_name: itemColorName,
+            color_hex: itemColorHex,
+            quantity: qty
+          });
+
+          continue;
+        }
+      }
+
+      const currentStock = Math.max(0, parseInt(product.stock || 0, 10));
+      const newStock = Math.max(0, currentStock - qty);
+
+      await sbPatch('products', productId, {
+        stock: newStock
+      });
+
+      console.log('[ADMIN] Stock global atualizado:', {
+        product_id: productId,
+        product_name: product.name,
+        old_stock: currentStock,
+        quantity: qty,
+        new_stock: newStock
+      });
+
+    } catch (e) {
+      console.error('[ADMIN] decrementOrderStock error:', {
+        product_id: productId,
+        error: e
+      });
+    }
   }
 }
 

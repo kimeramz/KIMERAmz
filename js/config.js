@@ -436,6 +436,16 @@ function addToCart(p, size, color, qty = 1) {
   const normalizedColor = normalizeCartColor(color);
   const productId = p.product_id || p.id || null;
 
+  const availableStock = Math.max(
+    0,
+    parseInt(p?.selected_variant?.stock ?? p?.stock ?? 0, 10)
+  );
+
+  if (availableStock <= 0) {
+    showToast('Esta variante está sem stock.', 'error');
+    return;
+  }
+
   const idx = cart.findIndex(i =>
     i.product_id === productId &&
     (i.size || '') === (size || '') &&
@@ -444,8 +454,15 @@ function addToCart(p, size, color, qty = 1) {
   );
 
   if (idx > -1) {
-    cart[idx].quantity += qty;
+    const nextQty = cart[idx].quantity + qty;
+    cart[idx].quantity = Math.min(nextQty, availableStock);
+
+    if (nextQty > availableStock) {
+      showToast(`Só existem ${availableStock} unidades disponíveis desta variante.`, 'info');
+    }
   } else {
+    const safeQty = Math.min(qty, availableStock);
+
     cart.push(normalizeCartItem({
       product_id: productId,
       name: p.name,
@@ -453,11 +470,15 @@ function addToCart(p, size, color, qty = 1) {
       thumbnail_url: p.thumbnail_url || p.thumbnail || '',
       store_id: p.store_id || '',
       store_name: p.store_name || '',
-      quantity: qty,
+      quantity: safeQty,
       size: size || '',
       color_name: normalizedColor.color_name,
       color_hex: normalizedColor.color_hex
     }));
+
+    if (qty > availableStock) {
+      showToast(`Só existem ${availableStock} unidades disponíveis desta variante.`, 'info');
+    }
   }
 
   saveCart(cart);
