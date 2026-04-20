@@ -1,13 +1,38 @@
-/* checkout.js — WhatsApp manual + multi-loja */
+/* checkout.js — WhatsApp manual + multi-loja v6 */
 
 let cartItems = [];
 let couponData = null;
 let orderRefs = [];
+let masterOrderRef = '';
+let cupomDate;
+let checkoutInitialized = false;
+
+function requireCheckoutAuth() {
+  const user = sbCurrentUser();
+
+  if (!user) {
+    showToast('Para comprar, é obrigatório ter conta e iniciar sessão.', 'error');
+    setTimeout(() => {
+      window.location.href = '/pages/login';
+    }, 900);
+    return false;
+  }
+
+  return true;
+}
 
 function loadCart() {
   cartItems = getCart();
   renderOrderSummary();
   updatePaymentButtons();
+}
+
+async function initCheckout() {
+  if (!requireCheckoutAuth()) return;
+
+  loadCart();
+  await restoreAppliedCoupon({ silent: true });
+  checkoutInitialized = true;
 }
 
 function renderOrderSummary() {
@@ -24,12 +49,19 @@ function renderOrderSummary() {
     <div class="order-item">
       <div class="order-img" style="overflow:hidden;">
         ${item.thumbnail_url
-          ? `<img src="${item.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">`
-          : '<div style="width:100%;height:100%;background:#eee;border-radius:6px;"></div>'}
+      ? `<img src="${item.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">`
+      : '<div style="width:100%;height:100%;background:#eee;border-radius:6px;"></div>'}
       </div>
       <div class="order-item-info">
         <p class="order-item-name">${item.name}</p>
-        <p class="order-item-meta">${[item.size, item.color].filter(Boolean).join(' · ')} · x${item.quantity}</p>
+        <p class="order-item-meta">
+          ${[
+            item.size ? `Tamanho: ${item.size}` : '',
+            item.color_name ? `Cor: ${item.color_name}` : ''
+          ].filter(Boolean).join(' · ')}
+          ${item.color_hex ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${item.color_hex};border:1px solid #ddd;margin-left:4px;vertical-align:-1px;"></span>` : ''}
+          · x${item.quantity}
+        </p>
         <p style="font-size:11px;color:#BDBDBD;">${item.store_name || ''}</p>
       </div>
       <div style="text-align:right;">
@@ -53,9 +85,9 @@ function removeCheckoutItem(idx) {
 
 function updateTotals() {
   const sub = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  const disc = couponData ? Math.round(sub * couponData.discount_pct / 100) : 0;
+  const disc = getCouponDiscount(sub, couponData);
   const del = cartItems.length ? KIMERA_CONFIG.business.deliveryFee : 0;
-  const total = sub - disc + del;
+  const total = Math.max(0, sub - disc + del);
 
   setText('checkSubtotal', fmtMT(sub));
   setText('checkDiscount', disc > 0 ? `− ${fmtMT(disc)}` : '0,00 MT');
@@ -88,35 +120,134 @@ function validatePayPhone(input) {
   }
 }
 
-async function applyCoupon() {
-  const code = document.getElementById('cupomInput')?.value.trim().toUpperCase();
-  if (!code) return;
+function normalizePhoneDigits(v = '') {
+  return String(v).replace(/\D/g, '');
+}
 
-  try {
-    const rows = await sbGet('coupons', `?code=eq.${code}&is_active=eq.true`);
-    if (!rows?.length) {
-      showToast('Cupão inválido ou expirado.', 'error');
-      return;
-    }
+function getCheckoutCustomerPhone() {
+  return normalizePhoneDigits(document.getElementById('clientPhone')?.value || '');
+}
 
-    const c = rows[0];
-    if (c.expires_at && new Date(c.expires_at) < new Date()) {
-      showToast('Cupão expirado.', 'error');
-      return;
-    }
+function setCouponMessage(message = '', type = 'info') {
+  const msg = document.getElementById('couponMsg');
+  if (!msg) return;
 
-    if (c.used_count >= c.max_uses) {
-      showToast('Cupão esgotado.', 'error');
-      return;
-    }
+  const colors = {
+    success: '#16A34A',
+    error: '#DC2626',
+    info: '#757575'
+  };
 
-    couponData = c;
-    showToast(`Cupão aplicado! ${c.discount_pct}% de desconto.`);
-    updateTotals();
-  } catch {
-    showToast('Erro ao verificar cupão.', 'error');
+  msg.textContent = message;
+  msg.style.color = colors[type] || colors.info;
+}
+
+function syncCouponUI() {
+  const input = document.getElementById('cupomInput');
+  const applied = document.getElementById('cupomAppliedInfo');
+
+  if (input && couponData?.code) {
+    input.value = couponData.code;
+  }
+
+  if (!applied) return;
+
+  if (couponData?.code) {
+    applied.innerHTML = `Cupom <strong>${couponData.code}</strong> aplicado (${couponData.discount_pct}% OFF)`;
+    applied.style.display = 'block';
+  } else {
+    applied.style.display = 'none';
+    applied.innerHTML = '';
   }
 }
+
+async function restoreAppliedCoupon({ silent = true } = {}) {
+  const saved = getAppliedCoupon();
+
+  if (!saved?.code || !cartItems.length) {
+    couponData = null;
+    clearAppliedCoupon();
+    syncCouponUI();
+    setCouponMessage('');
+    updateTotals();
+    return null;
+  }
+
+  try {
+    couponData = saveAppliedCoupon(
+      await validateCouponForCurrentUser(saved.code, getCheckoutCustomerPhone())
+    );
+
+    syncCouponUI();
+    setCouponMessage(`Cupom validado: ${couponData.discount_pct}% OFF`, 'success');
+    updateTotals();
+    return couponData;
+  } catch (e) {
+    couponData = null;
+    clearAppliedCoupon();
+    syncCouponUI();
+    setCouponMessage(e.message || 'Cupom removido. Valide novamente.', 'error');
+    updateTotals();
+
+    if (!silent) {
+      showToast(e.message || 'Cupom removido. Valide novamente.', 'error');
+    }
+
+    return null;
+  }
+}
+
+async function applyCoupon() {
+  const user = sbCurrentUser();
+  if (!user) {
+    showToast('É obrigatório iniciar sessão para usar cupom.', 'error');
+    setTimeout(() => {
+      window.location.href = '/pages/login';
+    }, 900);
+    return;
+  }
+
+  const code = normalizeCouponCode(document.getElementById('cupomInput')?.value);
+  if (!code) {
+    showToast('Digite um cupom.', 'error');
+    return;
+  }
+
+  try {
+    couponData = saveAppliedCoupon(
+      await validateCouponForCurrentUser(code, getCheckoutCustomerPhone())
+    );
+    updateTotals();
+    syncCouponUI();
+    setCouponMessage(`Cupom validado: ${couponData.discount_pct}% OFF`, 'success');
+    showToast(`Cupom aplicado com sucesso: ${couponData.discount_pct}% OFF`);
+  } catch (e) {
+    console.error('[Checkout] applyCoupon:', e);
+    couponData = null;
+    clearAppliedCoupon();
+    updateTotals();
+    syncCouponUI();
+    setCouponMessage(e.message || 'Erro ao validar cupom.', 'error');
+    showToast(e.message || 'Erro ao validar cupom.', 'error');
+  }
+}
+
+function removeCoupon(silent = false) {
+  couponData = null;
+  clearAppliedCoupon();
+
+  const input = document.getElementById('cupomInput');
+  if (input) input.value = '';
+
+  syncCouponUI();
+  setCouponMessage('');
+  updateTotals();
+
+  if (!silent) {
+    showToast('Cupom removido.', 'info');
+  }
+}
+
 
 function toggleConfirm() {
   updatePaymentButtons();
@@ -190,94 +321,192 @@ function getStartupWhatsapp() {
 }
 
 function formatPhone258(v) {
-  return '258' + String(v || '').replace(/\D/g, '');
+  const digits = normalizePhoneDigits(v);
+  return digits.startsWith('258') ? digits : '258' + digits;
+}
+
+function sanitizeOrderItems(items = []) {
+  return items.map(item => {
+    const normalized = normalizeCartItem(item);
+
+    return {
+      product_id: normalized.product_id,
+      name: normalized.name,
+      quantity: normalized.quantity,
+      price: normalized.price,
+      size: normalized.size,
+      color_name: normalized.color_name,
+      color_hex: normalized.color_hex,
+      thumbnail_url: normalized.thumbnail_url
+    };
+  });
 }
 
 async function createOrdersManual(formData) {
   const { name, phone, payPhone, province } = formData;
-  const { sub, disc, del, total } = updateTotals();
   const extra = document.getElementById('extraInfo')?.value.trim() || '';
+  const currentUser = sbCurrentUser();
   const groups = groupByStore(cartItems);
 
-  const createdOrders = [];
+  if (!currentUser) {
+    throw new Error('É obrigatório iniciar sessão para concluir a compra.');
+  }
 
-  for (const group of groups) {
-    const groupSub = group.items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const activeCoupon = couponData || getAppliedCoupon();
+  if (activeCoupon?.code) {
+    couponData = saveAppliedCoupon(
+      await validateCouponForCurrentUser(activeCoupon.code, phone)
+    );
+  }
+
+  const { sub, disc, del, total } = updateTotals();
+
+  const createdOrders = [];
+  const masterRef = 'KIM-' + Date.now().toString().slice(-8) + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  for (let index = 0; index < groups.length; index++) {
+    const group = groups[index];
+    const orderItems = sanitizeOrderItems(group.items);
+
+    const groupSub = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
     const groupShare = sub > 0 ? groupSub / sub : 1;
     const groupDel = groups.length === 1 ? del : Math.round(del * groupShare);
     const groupDisc = Math.round(disc * groupShare);
     const groupTotal = groupSub - groupDisc + groupDel;
     const commission = Math.round(groupTotal * KIMERA_CONFIG.business.commissionRate);
     const storeAmt = groupTotal - commission;
-    const ref = 'KIM-' + Date.now().toString().slice(-8) + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
+
+    const ref = `${masterRef}-${index + 1}`;
 
     const rows = await sbPost('orders', {
-      order_ref: ref,
-      customer_name: name,
-      customer_phone: formatPhone258(phone),
-      payment_phone: formatPhone258(payPhone),
+  customer_user_id: currentUser.id,
+  master_ref: masterRef,
+  order_ref: ref,
+  customer_name: name,
+  customer_phone: formatPhone258(phone),
+  payment_phone: formatPhone258(payPhone),
 
-      store_id: group.store_id,
-      store_name: group.store_name,
+  store_id: group.store_id,
+  store_name: group.store_name,
 
-      items: group.items,
-      subtotal: groupSub,
-      delivery_fee: groupDel,
-      discount: groupDisc,
-      total: groupTotal,
-      commission_amount: commission,
-      store_amount: storeAmt,
-      coupon_code: couponData?.code || null,
+  items: orderItems,
+  subtotal: groupSub,
+  delivery_fee: groupDel,
+  discount: groupDisc,
+  total: groupTotal,
+  commission_amount: commission,
+  store_amount: storeAmt,
+  coupon_code: couponData?.code || null,
 
-      status: 'pending',
-      payment_status: 'awaiting_proof',
-      payment_method: 'manual_whatsapp',
+  status: 'pending',
+  payment_status: 'awaiting_proof',
+  payment_method: 'manual_whatsapp',
 
-      payment_tx_ref: null,
-      payment_receipt_code: null,
-      register_code: null,
-      proof_submitted_at: null,
-      validated_at: null,
-      validated_by: null,
-      validation_notes: null,
-      customer_notified_at: null,
-      seller_notified_at: null,
+  payment_tx_ref: null,
+  payment_receipt_code: null,
+  register_code: null,
+  proof_submitted_at: null,
+  validated_at: null,
+  validated_by: null,
+  validation_notes: null,
+  customer_notified_at: null,
+  seller_notified_at: null,
 
-      delivery_address: { province, extra }
+  delivery_address: { province, extra }
+});
+
+/* ligar custom_projects ao pedido */
+const customProjectIds = group.items
+  .map(item => item?.customization?.project_id || null)
+  .filter(Boolean);
+
+for (const projectId of customProjectIds) {
+  await sbPatch('custom_projects', projectId, {
+    order_ref: ref,
+    customer_user_id: currentUser.id,
+    customer_name: name,
+    customer_phone: formatPhone258(phone),
+    status: 'pending_payment',
+    updated_at: new Date().toISOString()
+  });
+}
+
+createdOrders.push({
+  id: rows[0]?.id,
+  ref,
+  master_ref: masterRef,
+  store_name: group.store_name,
+  total: groupTotal,
+  items: orderItems
+});
+
+  }
+
+  if (couponData?.id) {
+    const previousUses = await sbGet(
+      'coupon_redemptions',
+      `?coupon_id=eq.${couponData.id}&user_id=eq.${currentUser.id}&select=id`
+    );
+
+    if ((previousUses?.length || 0) >= (couponData.max_uses_per_user || 1)) {
+      throw new Error('Esta conta já atingiu o limite de uso deste cupom.');
+    }
+
+    await sbPost('coupon_redemptions', {
+      coupon_id: couponData.id,
+      user_id: currentUser.id,
+      order_id: createdOrders[0]?.id || null
     });
 
-    createdOrders.push({
-      id: rows[0]?.id,
-      ref,
-      store_name: group.store_name,
-      total: groupTotal,
-      items: group.items
+    await sbPatch('coupons', couponData.id, {
+      used_count: (couponData.used_count || 0) + 1
     });
   }
 
-  return { createdOrders, total };
+  return {
+    createdOrders,
+    total,
+    masterRef
+  };
 }
 
-function buildWhatsAppMessage(formData, createdOrders, total) {
-  const itemsText = cartItems
-    .map(i => `- ${i.name} x${i.quantity}${i.size ? ` | Tam: ${i.size}` : ''}${i.color ? ` | Cor: ${i.color}` : ''}`)
+function buildWhatsAppMessage(formData, createdOrders, total, masterRef) {
+  const itemsText = sanitizeOrderItems(cartItems)
+    .map(i => {
+      const parts = [];
+
+      if (i.size) {
+        parts.push(`Tamanho: ${i.size}`);
+      }
+
+      const colorLabel = i.color_name || i.color_hex || '';
+      if (colorLabel) {
+        parts.push(`Cor: ${colorLabel}`);
+      }
+
+      return `- ${i.name} x${i.quantity}${parts.length ? ` | ${parts.join(' | ')}` : ''}`;
+    })
     .join('\n');
 
   const refsText = createdOrders
     .map(o => `- ${o.ref}${o.store_name ? ` | Loja: ${o.store_name}` : ''}`)
     .join('\n');
 
-  return `Olá, quero confirmar o pagamento da minha encomenda.%0A%0A` +
-    `Refs. da encomenda:%0A${refsText}%0A%0A` +
-    `Cliente: ${formData.name}%0A` +
-    `Contacto: +258${String(formData.phone).replace(/\D/g, '')}%0A` +
-    `Número usado no pagamento: +258${String(formData.payPhone).replace(/\D/g, '')}%0A%0A` +
-    `Itens:%0A${itemsText}%0A%0A` +
-    `Total a pagar: ${fmtMT(total)}%0A%0A` +
-    `Vou enviar o comprovativo nesta conversa.%0A%0A` +
-    `Dados para validação:%0A` +
-    `- Referência da transação:%0A` +
-    `- Código do recibo:%0A`;
+  const rawMessage =
+    `Olá, quero confirmar o pagamento da minha encomenda.\n\n` +
+    `Ref. geral da compra:\n${masterRef}\n\n` +
+    `Refs. por loja:\n${refsText}\n\n` +
+    `Cliente: ${formData.name}\n` +
+    `Contacto: +${formatPhone258(formData.phone)}\n` +
+    `Número usado no pagamento: +${formatPhone258(formData.payPhone)}\n\n` +
+    `Itens:\n${itemsText}\n\n` +
+    `Total a pagar: ${fmtMT(total)}\n\n` +
+    `Vou enviar o comprovativo nesta conversa.\n\n` +
+    `Dados para validação:\n` +
+    `- Referência da transação:\n` +
+    `- Código do recibo:\n`;
+
+  return encodeURIComponent(rawMessage);
 }
 
 function showProcessingOverlay(name, total, phone) {
@@ -312,43 +541,211 @@ function hideProcessingOverlay() {
   if (overlay._iv) clearInterval(overlay._iv);
   overlay.style.display = 'none';
 }
+function escapeHtml(str = '') {
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+function openWhatsAppBridgeTab(bridgeTab, waUrl, encodedMessage, primaryRef) {
+  if (!bridgeTab) return;
 
+  const rawMessage = decodeURIComponent(encodedMessage);
+
+  bridgeTab.document.open();
+  bridgeTab.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1.0">
+      <title>Enviar mensagem no WhatsApp</title>
+      <style>
+        body{
+          font-family:Inter,Arial,sans-serif;
+          background:#f7f7f7;
+          color:#111;
+          margin:0;
+          padding:24px;
+        }
+        .box{
+          max-width:760px;
+          margin:0 auto;
+          background:#fff;
+          border:1px solid #eaeaea;
+          border-radius:18px;
+          padding:24px;
+          box-shadow:0 8px 30px rgba(0,0,0,.05);
+        }
+        h1{
+          font-size:22px;
+          margin:0 0 10px;
+        }
+        p{
+          color:#666;
+          line-height:1.6;
+          font-size:14px;
+        }
+        textarea{
+          width:100%;
+          min-height:260px;
+          border:1px solid #ddd;
+          border-radius:12px;
+          padding:14px;
+          resize:vertical;
+          font-size:14px;
+          margin:16px 0;
+          box-sizing:border-box;
+        }
+        .actions{
+          display:flex;
+          gap:12px;
+          flex-wrap:wrap;
+          margin-top:10px;
+        }
+        button,a{
+          border:none;
+          border-radius:12px;
+          padding:12px 18px;
+          font-size:14px;
+          font-weight:700;
+          cursor:pointer;
+          text-decoration:none;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+        }
+        .primary{
+          background:#25D366;
+          color:#fff;
+        }
+        .secondary{
+          background:#111;
+          color:#fff;
+        }
+        .outline{
+          background:#fff;
+          color:#111;
+          border:1px solid #ddd;
+        }
+        .small{
+          font-size:12px;
+          color:#888;
+          margin-top:14px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h1>Enviar mensagem no WhatsApp</h1>
+        <p>
+          A sua encomenda foi criada. Agora envie a mensagem abaixo no WhatsApp para validar o pagamento.
+        </p>
+
+        <textarea id="msgBox">${escapeHtml(rawMessage)}</textarea>
+
+        <div class="actions">
+          <a class="primary" href="${waUrl}" target="_self">Abrir WhatsApp</a>
+          <button class="secondary" onclick="copyMsg()">Copiar mensagem</button>
+          <a class="outline" href="/pages/rastrear.html?ref=${encodeURIComponent(primaryRef)}&success=1" target="_self">Ir para rastreio</a>
+        </div>
+
+        <p class="small">
+          Se o WhatsApp não abrir automaticamente no seu dispositivo, copie a mensagem e envie manualmente.
+        </p>
+      </div>
+
+      <script>
+        function copyMsg() {
+          const val = document.getElementById('msgBox').value;
+          navigator.clipboard.writeText(val).then(() => {
+            alert('Mensagem copiada com sucesso.');
+          }).catch(() => {
+            alert('Não foi possível copiar automaticamente. Copie manualmente.');
+          });
+        }
+
+        setTimeout(() => {
+          try {
+            window.location.href = ${JSON.stringify(waUrl)};
+          } catch (e) {}
+        }, 500);
+      </script>
+    </body>
+    </html>
+  `);
+  bridgeTab.document.close();
+}
 async function placeOrderWhatsApp() {
   const form = validateForm();
   if (!form) return;
+
+  const bridgeTab = window.open('', '_blank');
 
   const { total } = updateTotals();
   showProcessingOverlay(form.name, total, form.payPhone);
 
   try {
-    const { createdOrders, total } = await createOrdersManual(form);
+    const { createdOrders, total, masterRef } = await createOrdersManual(form);
 
+    masterOrderRef = masterRef;
     orderRefs = createdOrders.map(o => o.ref);
+
     const primaryRef = orderRefs[0];
 
     const whatsappNumber = getStartupWhatsapp();
-    const text = buildWhatsAppMessage(form, createdOrders, total);
+    const text = buildWhatsAppMessage(form, createdOrders, total, masterRef);
     const waUrl = `https://wa.me/${whatsappNumber}?text=${text}`;
 
     saveCart([]);
+    clearAppliedCoupon();
     hideProcessingOverlay();
 
-    window.open(waUrl, '_blank');
-
-    showToast('Encomenda criada. Envie o comprovativo no WhatsApp para validação.', 'info');
+    if (bridgeTab) {
+      openWhatsAppBridgeTab(bridgeTab, waUrl, text, primaryRef);
+      showToast('Encomenda criada. Use a nova aba para enviar a mensagem no WhatsApp.', 'info');
+    } else {
+      window.location.href = waUrl;
+      showToast('Encomenda criada. A abrir WhatsApp...', 'info');
+    }
 
     setTimeout(() => {
-      window.location.href = `/pages/rastrear?ref=${primaryRef}&success=1`;
-    }, 900);
+      window.location.href = `/pages/rastrear.html?ref=${masterRef}&success=1`;
+    }, 1200);
   } catch (e) {
     console.error('[Checkout] Erro no fluxo WhatsApp:', e);
     hideProcessingOverlay();
-    showToast('Erro ao criar encomenda. Tente novamente.', 'error');
+
+    if (bridgeTab && !bridgeTab.closed) {
+      bridgeTab.close();
+    }
+
+    showToast(e.message || 'Erro ao criar encomenda. Tente novamente.', 'error');
   }
 }
 
 function showMpesaUnavailable() {
-  showToast('M-Pesa API ainda não está configurado. Use o botão do WhatsApp.', 'warning');
+  showToast('O pagamento por M-pesa encontra-se temporariamente fora de serviço. Use o botão do WhatsApp.', 'warning');
 }
 
-document.addEventListener('DOMContentLoaded', loadCart);
+async function refreshCheckoutFromStorage() {
+  cartItems = getCart();
+
+  if (!cartItems.length) {
+    removeCoupon(true);
+    renderOrderSummary();
+    return;
+  }
+
+  renderOrderSummary();
+  await restoreAppliedCoupon({ silent: true });
+}
+
+window.addEventListener('pageshow', () => {
+  if (!checkoutInitialized) return;
+  refreshCheckoutFromStorage();
+});
+
+document.addEventListener('DOMContentLoaded', initCheckout);

@@ -1,8 +1,6 @@
-/* produto.js — versão robusta */
-
 let produto = null;
 let selectedSize = '';
-let selectedColor = '';
+let selectedColor = null;
 let selectedRating = 0;
 
 const pid = new URLSearchParams(window.location.search).get('id');
@@ -19,6 +17,118 @@ function setText(id, value) {
 function setHTML(id, value) {
   const el = qs(id);
   if (el) el.innerHTML = value;
+}
+
+function normalizeProductList(value = []) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+
+  if (typeof value === 'string') {
+    const raw = value.trim();
+    if (!raw) return [];
+
+    if (raw.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch {}
+    }
+
+    return raw.split(',').map(v => v.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function isProductHexColor(value = '') {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(value || '').trim());
+}
+
+function colorNameFromHex(hex = '') {
+  const key = String(hex || '').trim().toUpperCase();
+
+  const names = {
+    '#000000': 'Preto',
+    '#111111': 'Preto',
+    '#FFFFFF': 'Branco',
+    '#F5F5F5': 'Branco',
+    '#FF0000': 'Vermelho',
+    '#E53935': 'Vermelho',
+    '#0000FF': 'Azul',
+    '#1D4ED8': 'Azul',
+    '#008000': 'Verde',
+    '#16A34A': 'Verde',
+    '#FFFF00': 'Amarelo',
+    '#F59E0B': 'Amarelo',
+    '#FFA500': 'Laranja',
+    '#FF6F00': 'Laranja',
+    '#FFC0CB': 'Rosa',
+    '#800080': 'Roxo',
+    '#808080': 'Cinza',
+    '#964B00': 'Castanho',
+    '#A52A2A': 'Castanho',
+    '#F5F5DC': 'Bege'
+  };
+
+  return names[key] || '';
+}
+
+function isLightHexColor(hex = '') {
+  const value = String(hex || '').trim();
+  if (!/^#[0-9A-Fa-f]{6}$/.test(value)) return false;
+
+  const r = parseInt(value.slice(1, 3), 16);
+  const g = parseInt(value.slice(3, 5), 16);
+  const b = parseInt(value.slice(5, 7), 16);
+
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance > 200;
+}
+
+function normalizeProductColor(color) {
+  if (!color) {
+    return { hex: '', name: '', swatch: '#F5F5F5' };
+  }
+
+  if (typeof color === 'object') {
+    const hex = String(color.hex || '').trim();
+    const rawName = String(color.name || '').trim();
+
+    const name = rawName && !isProductHexColor(rawName)
+      ? rawName
+      : colorNameFromHex(hex) || 'Cor';
+
+    return {
+      hex: isProductHexColor(hex) ? hex : '',
+      name,
+      swatch: isProductHexColor(hex) ? hex : '#F5F5F5'
+    };
+  }
+
+  const str = String(color).trim();
+  const withName = str.match(/^(#[0-9A-Fa-f]{6})(?:\(([^)]+)\))?$/);
+
+  if (withName) {
+    const hex = withName[1];
+    return {
+      hex,
+      name: withName[2]?.trim() || colorNameFromHex(hex) || 'Cor',
+      swatch: hex
+    };
+  }
+
+  if (isProductHexColor(str)) {
+    return {
+      hex: str,
+      name: colorNameFromHex(str) || 'Cor',
+      swatch: str
+    };
+  }
+
+  return {
+    hex: '',
+    name: str,
+    swatch: '#F5F5F5'
+  };
 }
 
 function showLoadingError(msg) {
@@ -43,6 +153,8 @@ async function loadProduto() {
     return;
   }
 
+  let loaded = false;
+
   try {
     const rows = await sbGet(
       'products',
@@ -56,11 +168,21 @@ async function loadProduto() {
 
     produto = rows[0];
     produto.store_name = produto.stores?.name || '';
+    loaded = true;
 
     renderProduto();
     loadReviews();
     loadProvas();
     loadRelacionados();
+
+    if (typeof trackPageVisit === 'function') {
+      trackPageVisit({
+        pageType: 'product',
+        pagePath: window.location.pathname + window.location.search,
+        productId: pid,
+        storeId: produto.store_id || produto.stores?.id || null
+      });
+    }
   } catch (e) {
     console.error('[Produto] loadProduto:', e);
     showLoadingError('Erro ao carregar produto.');
@@ -70,20 +192,23 @@ async function loadProduto() {
     const pt = qs('produtoTabs');
     const rs = qs('relacionadosSection');
 
-    if (ls) ls.style.display = 'none';
-    if (pl) pl.style.display = 'grid';
-    if (pt) pt.style.display = 'block';
-    if (rs) rs.style.display = 'block';
+    if (ls) ls.style.display = loaded ? 'none' : 'block';
+    if (pl) pl.style.display = loaded ? 'grid' : 'none';
+    if (pt) pt.style.display = loaded ? 'block' : 'none';
+    if (rs) rs.style.display = loaded ? 'block' : 'none';
   }
 }
 
 function renderProduto() {
+  selectedSize = '';
+  selectedColor = null;
+  setText('colorLabel', 'Selecione');
+
   const p = produto;
   if (!p) return;
 
   document.title = `Kimera — ${p.name}`;
 
-  /* breadcrumb */
   const breadStore = qs('breadStore');
   const breadName = qs('breadName');
 
@@ -94,24 +219,22 @@ function renderProduto() {
 
   if (breadName) breadName.textContent = p.name || 'Produto';
 
-  /* info base */
   setText('prodStore', p.store_name || 'Loja');
   setText('prodName', p.name || '');
   setText('prodDesc', (p.description || '').slice(0, 200));
   setText('descricaoContent', p.description || 'Sem descrição disponível.');
 
-  /* rating */
   const avg = Number(p.rating || 0);
   const stars = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
+
   setHTML(
     'prodRating',
     `<span class="stars-display">${stars}</span>
      <span class="rating-num">${avg.toFixed(1)}</span>
      <span class="rating-cnt">(${p.review_count || 0} avaliações)</span>`
   );
-  setText('reviewCountBadge', p.review_count || 0);
 
-  /* preços */
+  setText('reviewCountBadge', p.review_count || 0);
   setText('prodPreco', fmtMT(p.price || 0));
 
   const cp = p.original_price || p.compare_price;
@@ -122,42 +245,57 @@ function renderProduto() {
     prodPrecoOld.textContent = fmtMT(cp);
     prodSave.textContent = `Poupa ${Math.round((1 - p.price / cp) * 100)}%`;
     prodSave.style.display = 'inline-block';
+  } else {
+    if (prodPrecoOld) prodPrecoOld.textContent = '';
+    if (prodSave) prodSave.style.display = 'none';
   }
 
-  /* galeria */
   renderGaleria(p);
 
-  /* tamanhos */
   const sizesGroup = qs('sizesGroup');
   const sizeGrid = qs('sizeGrid');
-  if (sizesGroup && sizeGrid && Array.isArray(p.sizes) && p.sizes.length) {
+  const sizes = normalizeProductList(p.sizes);
+
+  if (sizesGroup && sizeGrid && sizes.length) {
     sizesGroup.style.display = 'block';
-    sizeGrid.innerHTML = p.sizes.map(s =>
-      `<button class="size-btn" onclick="setSize('${String(s).replace(/'/g, "\\'")}', this)">${s}</button>`
+    sizeGrid.innerHTML = sizes.map((s, idx) =>
+      `<button class="size-btn ${idx === 0 ? 'active' : ''}" onclick="setSize('${String(s).replace(/'/g, "\\'")}', this)">${s}</button>`
     ).join('');
+
+    selectedSize = String(sizes[0]);
+  } else if (sizesGroup) {
+    sizesGroup.style.display = 'none';
   }
 
-  /* cores */
   const colorsGroup = qs('colorsGroup');
   const colorGrid = qs('colorGrid');
-  if (colorsGroup && colorGrid && Array.isArray(p.colors) && p.colors.length) {
+  const colors = normalizeProductList(p.colors).map(normalizeProductColor).filter(c => c.name || c.hex);
+
+  if (colorsGroup && colorGrid && colors.length) {
     colorsGroup.style.display = 'block';
-    colorGrid.innerHTML = p.colors.map(c => {
-      const hex = c?.hex || c;
-      const name = c?.name || c;
-      return `
-        <button class="swatch-btn"
-          style="background:${hex};"
-          onclick="setColor('${String(name).replace(/'/g, "\\'")}', '${hex}', this)"
-          title="${name}">
-        </button>`;
-    }).join('');
+
+    colorGrid.innerHTML = colors.map(c => `
+  <button class="swatch-btn ${isLightHexColor(c.swatch) ? 'light' : ''}"
+    style="background:${c.swatch};"
+    data-name="${String(c.name || '').replace(/"/g, '&quot;')}"
+    data-hex="${String(c.hex || '').replace(/"/g, '&quot;')}"
+    onclick="setColor('${String(c.name || '').replace(/'/g, "\\'")}', '${String(c.hex || '').replace(/'/g, "\\'")}', this)"
+    title="${c.name}"
+    aria-label="${c.name}">
+  </button>
+`).join('');
+  } else if (colorsGroup) {
+    colorsGroup.style.display = 'none';
   }
-
-  /* stock */
+  
+const qtyInput = qs('qtyInput');
+if (qtyInput) {
+  const stock = Number(p?.stock ?? 0);
+  qtyInput.value = 1;
+  qtyInput.min = 1;
+  qtyInput.max = stock > 0 ? stock : 1;
+}
   renderStock(p);
-
-  /* loja */
   renderStoreInfo(p);
 }
 
@@ -204,17 +342,23 @@ function renderStock(p) {
   const btnBuy = qs('btnBuy');
   if (!stockInfo) return;
 
-  if ((p.stock || 0) <= 0) {
+  const stock = Number(p?.stock ?? 0);
+
+  if (stock <= 0) {
     stockInfo.textContent = 'Sem stock';
     stockInfo.className = 'stock-info out';
     if (btnCart) btnCart.disabled = true;
     if (btnBuy) btnBuy.disabled = true;
-  } else if (p.stock < 5) {
-    stockInfo.textContent = `Apenas ${p.stock} em stock!`;
+  } else if (stock < 5) {
+    stockInfo.textContent = `Apenas ${stock} em stock!`;
     stockInfo.className = 'stock-info low';
+    if (btnCart) btnCart.disabled = false;
+    if (btnBuy) btnBuy.disabled = false;
   } else {
-    stockInfo.textContent = `${p.stock} disponíveis`;
+    stockInfo.textContent = `${stock} disponíveis`;
     stockInfo.className = 'stock-info';
+    if (btnCart) btnCart.disabled = false;
+    if (btnBuy) btnBuy.disabled = false;
   }
 }
 
@@ -261,35 +405,44 @@ function setSize(size, btn) {
 }
 
 function setColor(name, hex, btn) {
-  selectedColor = name;
+  selectedColor = { name, hex };
+
   document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  setText('colorLabel', name);
+
+  setText('colorLabel', name || 'Cor');
 }
 
 function changeQty(delta) {
   const inp = qs('qtyInput');
   if (!inp) return;
 
+  const stock = Number(produto?.stock ?? 0);
   const current = parseInt(inp.value || 1, 10);
-  inp.value = Math.max(1, Math.min(produto?.stock || 99, current + delta));
+
+  const maxQty = stock > 0 ? stock : 1;
+  const next = Math.max(1, Math.min(maxQty, current + delta));
+
+  inp.value = next;
 }
 
 function validateOptions() {
-  if (produto?.sizes?.length && !selectedSize) {
+  if (normalizeProductList(produto?.sizes).length && !selectedSize) {
     showToast('Seleccione um tamanho.', 'error');
     return false;
   }
-  if (produto?.colors?.length && !selectedColor) {
+
+  if (normalizeProductList(produto?.colors).length && !selectedColor) {
     showToast('Seleccione uma cor.', 'error');
     return false;
   }
+
   return true;
 }
 
 function handleAddToCart() {
   if (!validateOptions()) return;
-  const qty = parseInt(qs('qtyInput')?.value || 1, 10);
+  const qty = parseInt(document.getElementById('qtyInput')?.value || 1, 10);
   addToCart(produto, selectedSize, selectedColor, qty);
 }
 
@@ -327,9 +480,11 @@ function openLightbox(url) {
     lb.innerHTML = `
       <button class="lightbox-close" onclick="closeLightbox()">✕</button>
       <img id="lbImg" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;">`;
+
     lb.addEventListener('click', e => {
       if (e.target === lb) closeLightbox();
     });
+
     document.body.appendChild(lb);
   }
 
@@ -418,8 +573,22 @@ function setRating(v) {
 }
 
 async function submitReview() {
+  const currentUser = sbCurrentUser();
+  if (!currentUser) {
+    showToast('Inicie sessão para publicar a avaliação.', 'error');
+    setTimeout(() => {
+      window.location.href = '/pages/login';
+    }, 900);
+    return;
+  }
+
   const text = qs('avText')?.value.trim();
-  const name = qs('avName')?.value.trim() || 'Anónimo';
+  const name =
+    qs('avName')?.value.trim() ||
+    currentUser.user_metadata?.full_name ||
+    currentUser.user_metadata?.name ||
+    'Anónimo';
+
   const btn = document.querySelector('.write-review .btn');
 
   if (!selectedRating) {
@@ -441,21 +610,25 @@ async function submitReview() {
     await sbPost('reviews', {
       product_id: pid,
       store_id: produto?.store_id || null,
+      user_id: currentUser.id,
       author_name: name,
       rating: selectedRating,
       text,
       status: 'pending',
+      is_verified: false,
       created_at: new Date().toISOString()
     });
 
     showToast('Avaliação enviada! Aguarda aprovação.');
+
     if (qs('avText')) qs('avText').value = '';
     if (qs('avName')) qs('avName').value = '';
+
     selectedRating = 0;
     document.querySelectorAll('.sp-star').forEach(s => s.classList.remove('active'));
   } catch (e) {
     console.error('[Produto] submitReview:', e);
-    showToast('Erro ao enviar. Tente novamente.', 'error');
+    showToast('Erro ao enviar: ' + (e.message || 'desconhecido'), 'error');
   } finally {
     if (btn) {
       btn.textContent = 'Publicar Avaliação';
@@ -470,7 +643,10 @@ async function loadProvas() {
   if (!grid) return;
 
   try {
-    const provas = await sbGet('delivery_proofs', '?is_approved=eq.true&order=created_at.desc&limit=9') || [];
+    const provas = await sbGet(
+      'delivery_proofs',
+      `?product_id=eq.${pid}&is_approved=eq.true&order=created_at.desc&limit=9`
+    ) || [];
 
     if (!provas.length) {
       if (empty) empty.style.display = 'block';

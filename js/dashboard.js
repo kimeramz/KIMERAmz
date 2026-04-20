@@ -209,7 +209,7 @@ function showDash(id, btn) {
     pedidos: loadStoreOrders,
     pagamentos: loadRevenueReport,
     avaliacoes: loadStoreReviews,
-    loja: () => {}
+    loja: () => { }
   };
 
   loaders[id]?.();
@@ -313,8 +313,8 @@ function renderRecentStoreOrders(orders) {
         </tr>
       </thead>
       <tbody>${orders.map(o => {
-        const isNew = isValidatedOrder(o) && !seen.includes(o.id);
-        return `<tr style="${isNew ? 'background:#F0FDF4;' : ''}">
+    const isNew = isValidatedOrder(o) && !seen.includes(o.id);
+    return `<tr style="${isNew ? 'background:#F0FDF4;' : ''}">
           <td class="order-id">
             ${o.order_ref}
             ${isNew ? '<span style="margin-left:6px;font-size:10px;background:#16A34A;color:#fff;padding:2px 6px;border-radius:999px;">NOVO</span>' : ''}
@@ -325,9 +325,38 @@ function renderRecentStoreOrders(orders) {
           <td><span class="status-pill ${o.status}">${o.status}</span></td>
           <td>${new Date(o.created_at).toLocaleDateString('pt-MZ')}</td>
         </tr>`;
-      }).join('')}</tbody>
+  }).join('')}</tbody>
     </table>
   </div>`;
+}
+
+function parseColorsInput(raw = '') {
+  return raw
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean)
+    .map(entry => {
+      const m = entry.match(/^(#[0-9A-Fa-f]{6})(?:\(([^)]+)\))?$/);
+
+      if (!m) {
+        return {
+          hex: entry,
+          name: entry
+        };
+      }
+
+      return {
+        hex: m[1],
+        name: (m[2] || m[1]).trim()
+      };
+    });
+}
+
+function colorsToInput(colors = []) {
+  return colors.map(c => {
+    if (typeof c === 'string') return c;
+    return `${c.hex}${c.name && c.name !== c.hex ? `(${c.name})` : ''}`;
+  }).join(',');
 }
 
 /* ── PRODUTOS ── */
@@ -363,11 +392,130 @@ async function loadStoreProducts() {
   }
 }
 
+const COLOR_PRESET = {
+  '#000000': 'Preto',
+  '#111111': 'Preto',
+  '#FFFFFF': 'Branco',
+  '#F5F5F5': 'Branco',
+  '#FF0000': 'Vermelho',
+  '#E53935': 'Vermelho',
+  '#0000FF': 'Azul',
+  '#1D4ED8': 'Azul',
+  '#008000': 'Verde',
+  '#16A34A': 'Verde',
+  '#FFFF00': 'Amarelo',
+  '#F59E0B': 'Amarelo',
+  '#FFA500': 'Laranja',
+  '#FF6F00': 'Laranja',
+  '#FFC0CB': 'Rosa',
+  '#800080': 'Roxo',
+  '#808080': 'Cinza',
+  '#964B00': 'Castanho',
+  '#A52A2A': 'Castanho',
+  '#F5F5DC': 'Bege'
+};
+
+function isLightPresetColor(hex = '') {
+  const value = String(hex || '').trim();
+  if (!/^#[0-9A-Fa-f]{6}$/.test(value)) return false;
+
+  const r = parseInt(value.slice(1, 3), 16);
+  const g = parseInt(value.slice(3, 5), 16);
+  const b = parseInt(value.slice(5, 7), 16);
+
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance > 200;
+}
+
+function syncHiddenProductColorsInput() {
+  const selected = Array.from(document.querySelectorAll('.vendor-color-chip.active'))
+    .map(btn => {
+      const hex = btn.dataset.hex;
+      const name = btn.dataset.name;
+      return `${hex}(${name})`;
+    });
+
+  const input = document.getElementById('prodColors');
+  if (input) input.value = selected.join(',');
+}
+
+function renderProductColorPresetPicker(selectedColors = []) {
+  const wrap = document.getElementById('prodColorPresetList');
+  if (!wrap) return;
+
+  const selectedHexes = (selectedColors || [])
+    .map(c => {
+      if (typeof c === 'string') {
+        const m = c.match(/^(#[0-9A-Fa-f]{6})/);
+        return m ? m[1].toUpperCase() : c.toUpperCase();
+      }
+
+      return String(c?.hex || '').toUpperCase();
+    })
+    .filter(Boolean);
+
+  wrap.innerHTML = Object.entries(COLOR_PRESET).map(([hex, name]) => `
+    <button
+      type="button"
+      class="vendor-color-chip ${selectedHexes.includes(hex.toUpperCase()) ? 'active' : ''} ${isLightPresetColor(hex) ? 'light' : ''}"
+      data-hex="${hex}"
+      data-name="${name}"
+      onclick="toggleVendorColor(this)">
+      <span class="vendor-color-swatch" style="background:${hex};"></span>
+      <span class="vendor-color-label">${name}</span>
+    </button>
+  `).join('');
+
+  syncHiddenProductColorsInput();
+}
+
+function toggleVendorColor(btn) {
+  btn.classList.toggle('active');
+  syncHiddenProductColorsInput();
+}
+//INICIA O CAMPO DE PRODUTO LIMPO
+
+function openNovoProduto() {
+  document.getElementById('prodEditId').value = '';
+  document.getElementById('prodName').value = '';
+  document.getElementById('prodPrice').value = '';
+  document.getElementById('prodOrigPrice').value = '';
+  document.getElementById('prodStock').value = '';
+  document.getElementById('prodDesc').value = '';
+  document.getElementById('prodCategory').value = '';
+  document.getElementById('prodSizes').value = '';
+  document.getElementById('prodColors').value = '';
+  document.getElementById('prodDiscount').value = '';
+  document.getElementById('prodFeatured').checked = false;
+  document.getElementById('prodIsNew').checked = true;
+
+  const mainInput = document.getElementById('prodMainImg');
+  const galleryInput = document.getElementById('prodGallery');
+  if (mainInput) mainInput.value = '';
+  if (galleryInput) galleryInput.value = '';
+
+  const cropImg = document.getElementById('mainImgCropImg');
+  const editor = document.getElementById('mainImgEditor');
+  const zone = document.getElementById('mainImgZone');
+
+  if (cropImg) cropImg.src = '';
+  if (editor) editor.style.display = 'none';
+  if (zone) zone.style.display = 'block';
+
+  renderProductColorPresetPicker([]);
+
+  document.getElementById('prodModalTitle').textContent = 'Novo Produto';
+  openModal('modalProduto');
+}
+
 /* ── SALVAR PRODUTO ── */
 async function saveProduto() {
-  if (!myStoreId) return;
+  if (!myStoreId) {
+    showToast('Loja não identificada.', 'error');
+    return;
+  }
 
-  const id = document.getElementById('prodEditId').value;
+  const id = document.getElementById('prodEditId').value.trim();
   const name = document.getElementById('prodName').value.trim();
   const price = parseFloat(document.getElementById('prodPrice').value);
 
@@ -377,8 +525,11 @@ async function saveProduto() {
   }
 
   const mainFile = document.getElementById('prodMainImg').files[0];
-  const galleryFiles = Array.from(document.getElementById('prodGallery').files);
-  let thumbnail_url = '', gallery_urls = [];
+  const galleryFiles = Array.from(document.getElementById('prodGallery').files || []);
+  const existingThumb = document.getElementById('mainImgCropImg')?.src || '';
+
+  let thumbnail_url = '';
+  let gallery_urls = [];
 
   try {
     if (mainFile) {
@@ -395,29 +546,56 @@ async function saveProduto() {
       store_name: myStoreData?.name || '',
       name,
       price,
-      stock: parseInt(document.getElementById('prodStock').value) || 0,
-      original_price: parseFloat(document.getElementById('prodOrigPrice').value) || price,
-      category: document.getElementById('prodCategory').value,
-      discount_pct: parseInt(document.getElementById('prodDiscount').value) || 0,
-      description: document.getElementById('prodDesc').value,
+      stock: parseInt(document.getElementById('prodStock').value || '0', 10) || 0,
+      original_price: parseFloat(document.getElementById('prodOrigPrice').value || price) || price,
+      category: document.getElementById('prodCategory').value || '',
+      discount_pct: parseInt(document.getElementById('prodDiscount').value || '0', 10) || 0,
+      description: document.getElementById('prodDesc').value || '',
       sizes: document.getElementById('prodSizes').value.split(',').map(s => s.trim()).filter(Boolean),
-      colors: document.getElementById('prodColors').value.split(',').map(s => s.trim()).filter(Boolean),
+      colors: parseColorsInput(document.getElementById('prodColors').value),
       is_featured: document.getElementById('prodFeatured').checked,
       is_new: document.getElementById('prodIsNew').checked,
       is_active: true,
-      ...(thumbnail_url && { thumbnail_url }),
-      ...(gallery_urls.length && { gallery_urls })
+      thumbnail_url: thumbnail_url || existingThumb || ''
     };
 
-    if (id) await sbPatch('products', id, payload);
-    else await sbPost('products', payload);
+    if (gallery_urls.length) {
+      payload.gallery_urls = gallery_urls;
+    }
+
+    let savedRows;
+
+    if (id) {
+      console.log('[PRODUTO] MODO EDIÇÃO', { id, payload });
+      savedRows = await sbPatch('products', id, payload);
+    } else {
+      payload.created_at = new Date().toISOString();
+      payload.sales_count = 0;
+      payload.review_count = 0;
+      payload.rating = 0;
+
+      console.log('[PRODUTO] MODO CRIAÇÃO', { payload });
+      savedRows = await sbPost('products', payload);
+    }
+
+    console.log('[PRODUTO] RESPOSTA DO SUPABASE', savedRows);
+
+    const savedId = savedRows?.[0]?.id || id;
+    if (!savedId) {
+      throw new Error('Supabase não devolveu ID do produto.');
+    }
+
+    const confirmRows = await sbGet('products', `?id=eq.${savedId}`);
+    console.log('[PRODUTO] CONFIRMAÇÃO NO BANCO', confirmRows);
 
     showToast(id ? 'Produto actualizado!' : 'Produto criado!');
     closeModal('modalProduto');
-    loadStoreProducts();
+
+    await loadStoreProducts();
+    await loadStoreOverview();
   } catch (e) {
-    showToast('Erro: ' + e.message, 'error');
-    console.error(e);
+    console.error('[PRODUTO] ERRO saveProduto:', e);
+    showToast('Erro: ' + (e.message || 'desconhecido'), 'error');
   }
 }
 
@@ -432,11 +610,14 @@ async function editProduto(id) {
   document.getElementById('prodOrigPrice').value = p.original_price || '';
   document.getElementById('prodStock').value = p.stock || '';
   document.getElementById('prodDesc').value = p.description || '';
+  document.getElementById('prodCategory').value = p.category || '';
   document.getElementById('prodSizes').value = (p.sizes || []).join(',');
-  document.getElementById('prodColors').value = (p.colors || []).join(',');
+  document.getElementById('prodColors').value = colorsToInput(p.colors || []);
   document.getElementById('prodDiscount').value = p.discount_pct || '';
   document.getElementById('prodFeatured').checked = !!p.is_featured;
   document.getElementById('prodIsNew').checked = !!p.is_new;
+
+  renderProductColorPresetPicker(p.colors || []);
 
   if (p.thumbnail_url) {
     const img = document.getElementById('mainImgCropImg');
@@ -463,20 +644,37 @@ async function deleteProduto(id) {
 }
 
 /* ── PEDIDOS DA LOJA ── */
-async function loadStoreOrders() {
+async function loadStoreOrders(silent = false) {
   if (!myStoreId) return;
+
   const wrap = document.getElementById('storeOrdersTable');
+  if (!wrap) return;
+
+  if (!silent) {
+    wrap.innerHTML = '<p style="padding:20px;text-align:center;"><div class="loading-spinner"></div></p>';
+  }
 
   try {
-    allStoreOrders = await sbGet(
+    const rows = await sbGet(
       'orders',
       `?store_id=eq.${myStoreId}&payment_status=eq.paid&order=created_at.desc&select=*`
     );
 
+    const oldJson = JSON.stringify(allStoreOrders || []);
+    const newJson = JSON.stringify(rows || []);
+
+    if (silent && oldJson === newJson) {
+      return;
+    }
+
+    allStoreOrders = rows || [];
     renderStoreOrdersTable(allStoreOrders);
   } catch (e) {
     console.error('[Dashboard] loadStoreOrders:', e);
-    wrap.innerHTML = '<p style="padding:20px;color:#DC2626;">Erro ao carregar pedidos.</p>';
+
+    if (!silent) {
+      wrap.innerHTML = '<p style="padding:20px;color:#DC2626;">Erro ao carregar pedidos.</p>';
+    }
   }
 }
 
@@ -564,6 +762,55 @@ function filterStoreOrders(status, btn) {
   renderStoreOrdersTable(filtered);
 }
 
+function normalizeStoreOrderItem(item = {}) {
+  if (typeof normalizeCartItem === 'function') {
+    return normalizeCartItem(item);
+  }
+
+  return {
+    product_id: item.product_id || item.id || null,
+    name: item.name || 'Produto',
+    quantity: parseInt(item.quantity || 1, 10),
+    price: Number(item.price || 0),
+    size: item.size || '',
+    color_name: item.color_name || '',
+    color_hex: item.color_hex || '',
+    thumbnail_url: item.thumbnail_url || item.thumbnail || ''
+  };
+}
+
+function renderStoreOrderItemsCompact(items = []) {
+  if (!Array.isArray(items) || !items.length) {
+    return '—';
+  }
+
+  return items.map(rawItem => {
+    const item = normalizeStoreOrderItem(rawItem);
+    const meta = [
+      `Qtd: ${item.quantity || 1}`,
+      item.size ? `Tam: ${item.size}` : '',
+      item.color_name ? `Cor: ${item.color_name}` : ''
+    ].filter(Boolean).join(' | ');
+
+    return `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;min-width:220px;">
+        <div style="width:38px;height:38px;border-radius:8px;overflow:hidden;background:#f3f3f3;flex-shrink:0;">
+          ${item.thumbnail_url
+        ? `<img src="${item.thumbnail_url}" alt="${item.name || 'Produto'}" style="width:100%;height:100%;object-fit:cover;">`
+        : '<div style="width:100%;height:100%;background:#eee;"></div>'}
+        </div>
+        <div style="min-width:0;">
+          <div style="font-weight:700;font-size:12px;color:#111;line-height:1.3;">${item.name || 'Produto'}</div>
+          <div style="font-size:11px;color:#666;line-height:1.35;">
+            ${meta}
+            ${item.color_hex ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${item.color_hex};border:1px solid #ddd;margin-left:5px;vertical-align:-1px;"></span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 async function updateStoreOrderStatus(id, selectEl) {
   const newStatus = selectEl.value;
   const order = allStoreOrders.find(o => o.id === id);
@@ -620,19 +867,20 @@ function renderStoreOrdersTable(orders) {
           <th>Total</th>
           <th>Meu valor</th>
           <th>Estado</th>
+          <th>Actualizar</th>
           <th>Acção</th>
         </tr>
       </thead>
       <tbody>
         ${orders.map(o => {
-          const allowedStatuses = getAllowedStoreStatusTransitions(o.status);
+    const allowedStatuses = getAllowedStoreStatusTransitions(o.status);
 
-          return `
+    return `
             <tr>
               <td class="order-id">${o.order_ref}</td>
               <td>${o.customer_name || '—'}</td>
               <td>${o.customer_phone || '—'}</td>
-              <td>${(o.items || []).map(i => i.name).join(', ') || '—'}</td>
+              <td>${renderStoreOrderItemsCompact(o.items)}</td>
               <td>${fmtMT(o.total || 0)}</td>
               <td style="color:#16A34A;font-weight:700;">${fmtMT(o.store_amount || 0)}</td>
               <td><span class="status-pill ${o.status}">${o.status}</span></td>
@@ -643,59 +891,12 @@ function renderStoreOrdersTable(orders) {
                   `).join('')}
                 </select>
               </td>
-            </tr>
-          `;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
-}
-
-function renderStoreOrdersTable(orders) {
-  const wrap = document.getElementById('storeOrdersTable');
-
-  if (!orders.length) {
-    wrap.innerHTML = '<p style="padding:20px;color:#9E9E9E;">Sem pedidos com pagamento validado.</p>';
-    return;
-  }
-
-  wrap.innerHTML = `
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>Ref</th>
-          <th>Cliente</th>
-          <th>Contacto</th>
-          <th>Produtos</th>
-          <th>Total</th>
-          <th>Meu valor</th>
-          <th>Estado</th>
-          <th>Acção</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${orders.map(o => {
-          const allowedStatuses = getAllowedStoreStatusTransitions(o.status);
-
-          return `
-            <tr>
-              <td class="order-id">${o.order_ref}</td>
-              <td>${o.customer_name || '—'}</td>
-              <td>${o.customer_phone || '—'}</td>
-              <td>${(o.items || []).map(i => i.name).join(', ') || '—'}</td>
-              <td>${fmtMT(o.total || 0)}</td>
-              <td style="color:#16A34A;font-weight:700;">${fmtMT(o.store_amount || 0)}</td>
-              <td><span class="status-pill ${o.status}">${o.status}</span></td>
               <td>
-                <select class="status-select" onchange="updateStoreOrderStatus('${o.id}', this)">
-                  ${allowedStatuses.map(status => `
-                    <option value="${status}" ${o.status === status ? 'selected' : ''}>${status}</option>
-                  `).join('')}
-                </select>
+              <button class="act-btn edit" onclick="viewStoreOrder('${o.id}')">Ver</button>
               </td>
             </tr>
           `;
-        }).join('')}
+  }).join('')}
       </tbody>
     </table>
   `;
@@ -726,7 +927,7 @@ async function loadRevenueReport() {
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Total a Receber</span>
-            <span class="kpi-value">${fmtMT(pending.reduce((s,o) => s + (o.store_amount || 0), 0))}</span>
+            <span class="kpi-value">${fmtMT(pending.reduce((s, o) => s + (o.store_amount || 0), 0))}</span>
           </div>
         </div>
 
@@ -738,20 +939,7 @@ async function loadRevenueReport() {
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Já Recebido</span>
-            <span class="kpi-value">${fmtMT(paid.reduce((s,o) => s + (o.store_amount || 0), 0))}</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-icon red">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-          </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Comissão Kimera (8%)</span>
-            <span class="kpi-value">${fmtMT(orders.reduce((s,o) => s + (o.commission_amount || 0), 0))}</span>
+            <span class="kpi-value">${fmtMT(paid.reduce((s, o) => s + (o.store_amount || 0), 0))}</span>
           </div>
         </div>
       </div>
@@ -761,7 +949,6 @@ async function loadRevenueReport() {
           <thead>
             <tr>
               <th>Ref</th>
-              <th>Total Pago</th>
               <th>Comissão (8%)</th>
               <th>Meu valor (92%)</th>
               <th>Estado Repasse</th>
@@ -772,11 +959,14 @@ async function loadRevenueReport() {
             ${orders.map(o => `
               <tr>
                 <td class="order-id">${o.order_ref}</td>
-                <td>${fmtMT(o.total || 0)}</td>
                 <td style="color:#E53935;">${fmtMT(o.commission_amount || 0)}</td>
                 <td style="color:#16A34A;font-weight:700;">${fmtMT(o.store_amount || 0)}</td>
-                <td>${o.store_payout_done ? '<span class="status-pill paid">Repassado ✓</span>' : '<span class="status-pill pending">Pendente</span>'}</td>
-                <td>${new Date(o.created_at).toLocaleDateString('pt-MZ')}</td>
+                <td>
+                  <span class="status-pill ${o.store_payout_done ? 'paid' : 'pending'}">
+                    ${o.store_payout_done ? 'Repassado' : 'Pendente'}
+                  </span>
+                </td>
+                <td>${fmtDate(o.created_at)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -785,8 +975,120 @@ async function loadRevenueReport() {
     `;
   } catch (e) {
     console.error('[Dashboard] loadRevenueReport:', e);
-    el.innerHTML = '<p style="padding:20px;color:#DC2626;">Erro.</p>';
+    el.innerHTML = '<p style="padding:20px;color:#DC2626;">Erro ao carregar receitas.</p>';
   }
+}
+
+function renderStoreOrderItemsDetailed(items = []) {
+  if (!Array.isArray(items) || !items.length) {
+    return '<p style="color:#9E9E9E;">Sem itens.</p>';
+  }
+
+  return items.map(rawItem => {
+    const item = normalizeStoreOrderItem(rawItem);
+
+    return `
+    <div style="display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #f1f1f1;">
+      <div style="width:64px;height:64px;border-radius:10px;overflow:hidden;background:#f5f5f5;flex-shrink:0;">
+        ${item.thumbnail_url
+      ? `<img src="${item.thumbnail_url}" alt="${item.name || 'Produto'}" style="width:100%;height:100%;object-fit:cover;">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#eee;">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                 <rect x="3" y="3" width="18" height="18" rx="2"/>
+                 <circle cx="8.5" cy="8.5" r="1.5"/>
+                 <polyline points="21 15 16 10 5 21"/>
+               </svg>
+             </div>`
+    }
+      </div>
+
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:800;color:#111;margin-bottom:4px;">
+          ${item.name || 'Produto'}
+        </div>
+
+        <div style="font-size:13px;color:#666;line-height:1.6;">
+          <div><strong>Quantidade:</strong> ${item.quantity || 1}</div>
+          ${item.size ? `<div><strong>Tamanho:</strong> ${item.size}</div>` : ''}
+          ${(item.color_name || item.color_hex) ? `<div><strong>Cor:</strong> ${item.color_name || ''} ${item.color_hex ? `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${item.color_hex};border:1px solid #ddd;margin-left:6px;vertical-align:-1px;"></span>` : ''}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function viewStoreOrder(id) {
+  const o = allStoreOrders.find(x => x.id === id);
+  if (!o) {
+    showToast('Pedido não encontrado.', 'error');
+    return;
+  }
+
+  const body = document.getElementById('modalStoreOrderViewBody');
+  if (!body) return;
+
+  const address = o.delivery_address || {};
+  const itemsHtml = renderStoreOrderItemsDetailed(o.items);
+
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;">
+      <div style="background:#fafafa;border:1px solid #eee;border-radius:14px;padding:16px;">
+        <h4 style="margin:0 0 12px;font-size:16px;">Informações da Encomenda</h4>
+        <p style="margin:0 0 8px;"><strong>Master Ref:</strong> ${o.master_ref || '—'}</p>
+        <p style="margin:0 0 8px;"><strong>Order Ref:</strong> ${o.order_ref || '—'}</p>
+        <p style="margin:0 0 8px;"><strong>Loja:</strong> ${o.store_name || '—'}</p>
+        <p style="margin:0 0 8px;"><strong>Estado:</strong> ${o.status || '—'}</p>
+        <p style="margin:0;"><strong>Data:</strong> ${fmtDate(o.created_at)}</p>
+      </div>
+
+      <div style="background:#fafafa;border:1px solid #eee;border-radius:14px;padding:16px;">
+        <h4 style="margin:0 0 12px;font-size:16px;">Cliente</h4>
+        <p style="margin:0 0 8px;"><strong>Nome:</strong> ${o.customer_name || '—'}</p>
+        <p style="margin:0 0 8px;"><strong>Contacto:</strong> ${o.customer_phone || '—'}</p>
+        <p style="margin:0 0 8px;"><strong>Província / Bairro:</strong> ${address.province || '—'}</p>
+        <p style="margin:0;"><strong>Referência / Extra:</strong> ${address.extra || '—'}</p>
+      </div>
+    </div>
+
+    <div style="background:#fafafa;border:1px solid #eee;border-radius:14px;padding:16px;margin-bottom:20px;">
+      <h4 style="margin:0 0 12px;font-size:16px;">Resumo Operacional</h4>
+      <p style="margin:0 0 8px;"><strong>Tracking / Ref:</strong> ${o.order_ref || '—'}</p>
+      <p style="margin:0 0 8px;"><strong>Pagamento:</strong> ${o.payment_status || '—'}</p>
+      <p style="margin:0 0 8px;"><strong>Meu valor:</strong> ${fmtMT(o.store_amount || 0)}</p>
+      <p style="margin:0;"><strong>Repasse:</strong> ${o.store_payout_done ? 'Concluído' : 'Pendente'}</p>
+    </div>
+
+    <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:16px;">
+      <h4 style="margin:0 0 14px;font-size:16px;">Itens Comprados</h4>
+      ${itemsHtml}
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
+      <button class="btn btn-outline" onclick="notifyAdminAboutOrder('${o.id}')">Notificar Admin</button>
+    </div>
+  `;
+
+  openModal('modalStoreOrderView');
+}
+
+function notifyAdminAboutOrder(id) {
+  const o = allStoreOrders.find(x => x.id === id);
+  if (!o) return;
+
+  const adminPhone = '258849368285';
+
+  const msg =
+    `Olá Admin.%0A%0A` +
+    `Preciso de apoio numa encomenda da loja.%0A%0A` +
+    `Ref: ${o.order_ref || '—'}%0A` +
+    `Cliente: ${o.customer_name || '—'}%0A` +
+    `Loja: ${o.store_name || '—'}%0A` +
+    `Estado atual: ${o.status || '—'}%0A%0A` +
+    `Peço apoio para atualização/comunicação com o cliente.%0A%0A` +
+    `Tracking: ${o.order_ref || '—'}`;
+
+  window.open(`https://wa.me/${adminPhone}?text=${msg}`, '_blank');
 }
 
 /* ── AVALIAÇÕES ── */
@@ -802,7 +1104,7 @@ async function loadStoreReviews() {
     }
 
     el.innerHTML = reviews.map(r => `<div class="review-card" style="margin-bottom:16px;">
-      <div class="review-header"><div class="client-av">${(r.author_name || '?').slice(0,2).toUpperCase()}</div>
+      <div class="review-header"><div class="client-av">${(r.author_name || '?').slice(0, 2).toUpperCase()}</div>
         <div><p class="review-author">${r.author_name || 'Anónimo'}</p><div class="stars">${'★'.repeat(r.rating || 0)}${'☆'.repeat(5 - (r.rating || 0))}</div></div>
         <span class="review-date" style="margin-left:auto;">${new Date(r.created_at).toLocaleDateString('pt-MZ')}</span>
         <span class="status-pill ${r.status === 'approved' ? 'paid' : 'pending'}">${r.status}</span>

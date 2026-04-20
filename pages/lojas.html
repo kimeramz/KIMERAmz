@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Kimera — Produtos & Lojas</title>
+  <title>Kimera — Todos Produtos</title>
   <link rel="stylesheet" href="../css/global.css"/>
   <link rel="stylesheet" href="../css/lojas.css"/>
 </head>
@@ -29,15 +29,15 @@
     <a href="/pages/rastrear.html">Rastrear</a><a href="/pages/contactos.html">Contactos</a>
   </div>
 </nav>
-
+<div id="filtersOverlay" class="filters-overlay" onclick="closeFiltersPanel()"></div>
 <!-- Cabeçalho de loja (visível só quando ?store=ID) -->
 <div id="storeHeaderContainer" style="display:none;"></div>
 
 <main class="page-container lojas-main">
   <div class="lojas-header">
     <div>
-      <h1 id="lojaPageTitle">Produtos & Lojas</h1>
-      <p id="lojaPageSub">Descubra as melhores lojas do marketplace</p>
+      <h1 id="lojaPageTitle">Produtos</h1>
+      <p id="lojaPageSub">Descubra os melhores produtos do marketplace</p>
     </div>
     <div class="lojas-toolbar">
       <span class="results-count" id="resultsCount"></span>

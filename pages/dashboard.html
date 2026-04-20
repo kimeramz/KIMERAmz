@@ -92,7 +92,7 @@
 
     <!-- PRODUTOS DA LOJA -->
     <section class="admin-section" id="dash-produtos">
-      <div class="section-heading"><h1>Produtos</h1><button class="btn btn-red" onclick="openModal('modalProduto')">+ Novo Produto</button></div>
+      <div class="section-heading"><h1>Produtos</h1><button class="btn btn-red" onclick="openNovoProduto()">+ Novo Produto</button></div>
       <div class="admin-table-wrap" id="storeProdTable">
         <div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div>
       </div>
@@ -195,8 +195,10 @@
       </div>
       <div class="config-field"><label>Descrição</label><textarea id="prodDesc" rows="3" placeholder="Descreva o produto..." style="height:auto;padding:10px 12px;"></textarea></div>
       <div class="config-field"><label>Tamanhos disponíveis (separados por vírgula)</label><input type="text" id="prodSizes" placeholder="XS,S,M,L,XL,XXL"/></div>
-      <div class="config-field"><label>Cores disponíveis (ex: #000000,#FFFFFF)</label><input type="text" id="prodColors" placeholder="#000000,#FFFFFF,#E53935"/></div>
-
+      <div class="config-field"><label>Cores disponíveis</label><div id="prodColorPresetList" class="vendor-color-preset-list"></div>
+        <!-- mantém o mesmo id para não quebrar o resto do sistema -->
+          <input type="hidden" id="prodColors"/>
+        </div>
       <!-- IMAGENS COM AJUSTE -->
       <div class="config-field">
         <label>Imagem principal *</label>
@@ -233,6 +235,25 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalProduto')">Cancelar</button>
       <button class="btn btn-red" onclick="saveProduto()">Guardar Produto</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalStoreOrderView">
+  <div class="modal" style="max-width:900px;width:95%;">
+    <div class="modal-header">
+      <h3>Detalhes da Encomenda</h3>
+      <button class="modal-close" onclick="closeModal('modalStoreOrderView')">✕</button>
+    </div>
+
+    <div class="modal-body" id="modalStoreOrderViewBody" style="max-height:75vh;overflow:auto;padding:20px;">
+      <div style="padding:20px;text-align:center;">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalStoreOrderView')">Fechar</button>
     </div>
   </div>
 </div>

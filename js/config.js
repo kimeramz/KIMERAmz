@@ -1,6 +1,53 @@
 /* ============================================================
-   KIMERA — CONFIGURAÇÃO CENTRAL v3
+   KIMERA — CONFIGURAÇÃO CENTRAL v6
    ============================================================ */
+
+//Ve todos que entram na pagina e trasforma em numeros
+
+function getVisitSessionId() {
+  let sid = localStorage.getItem('kimera_visit_session');
+
+  if (!sid) {
+    sid = 'sess_' + Math.random().toString(36).slice(2) + Date.now();
+    localStorage.setItem('kimera_visit_session', sid);
+  }
+
+  return sid;
+}
+
+function shouldTrackVisit() {
+  const path = window.location.pathname.toLowerCase();
+
+  /* NÃO contar backoffice */
+  if (path.includes('/pages/admin')) return false;
+  if (path.includes('/pages/dashboard')) return false;
+
+  return true;
+}
+
+async function trackPageVisit({ pageType, pagePath = '', productId = null, storeId = null }) {
+  try {
+    if (!shouldTrackVisit()) return;
+
+    const visitKey = `visit:${pageType}:${pagePath}:${productId || ''}:${storeId || ''}`;
+    if (sessionStorage.getItem(visitKey)) return;
+
+    sessionStorage.setItem(visitKey, '1');
+
+    await sbPost('page_visits', {
+      page_type: pageType,
+      page_path: pagePath,
+      product_id: productId,
+      store_id: storeId,
+      session_id: getVisitSessionId(),
+      referrer: document.referrer || '',
+      user_agent: navigator.userAgent || '',
+      created_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('[Analytics] trackPageVisit:', e);
+  }
+}
 
 const KIMERA_CONFIG = {
   supabase: {
@@ -24,10 +71,35 @@ const KIMERA_CONFIG = {
     commissionRate: 0.08,
     deliveryFee:    100,
     name:           'Kimera Marketplace',
-    emailDomain:    'kimera.co.mz'
+    emailDomain:    'kimera.co.mz',
+    kimeraCriarStoreId: '6f866e10-5708-4be4-aac5-240175b23fe6'
   },
   roles: { SUPER_ADMIN:'super_admin', STORE_OWNER:'store_owner', CUSTOMER:'customer' }
 };
+
+function parseColorsInput(raw = '') {
+  return raw
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean)
+    .map(entry => {
+      const m = entry.match(/^(#[0-9A-Fa-f]{6})(?:\(([^)]+)\))?$/);
+      if (!m) {
+        return { hex: entry, name: entry };
+      }
+      return {
+        hex: m[1],
+        name: (m[2] || m[1]).trim()
+      };
+    });
+}
+
+function colorsToInput(colors = []) {
+  return colors.map(c => {
+    if (typeof c === 'string') return c;
+    return `${c.hex}${c.name && c.name !== c.hex ? `(${c.name})` : ''}`;
+  }).join(',');
+}
 
 const SB_URL = KIMERA_CONFIG.supabase.url;
 const SB_KEY = KIMERA_CONFIG.supabase.anonKey;
@@ -122,6 +194,114 @@ async function sbUpload(bucket, path, file) {
   }
   return `${SB_URL}/storage/v1/object/public/${bucket}/${cleanPath}`;
 }
+function getAppliedCoupon() {
+  try {
+    const coupon = JSON.parse(localStorage.getItem('kimeraAppliedCoupon') || 'null');
+    if (!coupon?.code) return null;
+
+    return {
+      ...coupon,
+      code: normalizeCouponCode(coupon.code),
+      discount_pct: Number(coupon.discount_pct || 0)
+    };
+  } catch {
+    clearAppliedCoupon();
+    return null;
+  }
+}
+
+function saveAppliedCoupon(coupon) {
+  if (!coupon?.code) {
+    clearAppliedCoupon();
+    return null;
+  }
+
+  const normalized = {
+    ...coupon,
+    code: normalizeCouponCode(coupon.code),
+    discount_pct: Number(coupon.discount_pct || 0)
+  };
+
+  localStorage.setItem('kimeraAppliedCoupon', JSON.stringify(normalized));
+  return normalized;
+}
+
+function clearAppliedCoupon() {
+  localStorage.removeItem('kimeraAppliedCoupon');
+}
+
+function normalizeCouponCode(code = '') {
+  return String(code || '').trim().toUpperCase();
+}
+
+function getCouponDiscount(subtotal, coupon) {
+  const pct = Number(coupon?.discount_pct || 0);
+  const base = Number(subtotal || 0);
+
+  if (!pct || base <= 0) return 0;
+  return Math.max(0, Math.round(base * (pct / 100)));
+}
+
+async function validateCouponForCurrentUser(code, customerPhone = '') {
+  const user = sbCurrentUser();
+  if (!user) {
+    throw new Error('É obrigatório iniciar sessão para usar cupom.');
+  }
+
+  const cleanCode = normalizeCouponCode(code);
+  if (!cleanCode) {
+    throw new Error('Digite um cupom.');
+  }
+
+  const rows = await sbGet('coupons', `?code=eq.${encodeURIComponent(cleanCode)}&is_active=eq.true`);
+  if (!rows?.length) {
+    throw new Error('Cupom inválido ou inativo.');
+  }
+
+  const c = rows[0];
+
+  if (c.expires_at && new Date(c.expires_at) < new Date()) {
+    throw new Error('Cupom expirado.');
+  }
+
+  if ((c.used_count || 0) >= (c.max_uses || 1)) {
+    throw new Error('Cupom esgotado.');
+  }
+
+  const previousUses = await sbGet(
+    'coupon_redemptions',
+    `?coupon_id=eq.${c.id}&user_id=eq.${user.id}&select=id`
+  );
+
+  if ((previousUses?.length || 0) >= (c.max_uses_per_user || 1)) {
+    throw new Error('Esta conta já atingiu o limite de uso deste cupom.');
+  }
+
+  const cleanCustomerPhone = String(customerPhone).replace(/\D/g, '');
+  const cleanAssignedPhone = String(c.assigned_phone || '').replace(/\D/g, '');
+
+  if (cleanAssignedPhone) {
+    const accountPhone = String(
+      user.phone ||
+      user.user_metadata?.phone ||
+      user.user_metadata?.phone_number ||
+      ''
+    ).replace(/\D/g, '');
+
+    const phoneA = cleanCustomerPhone || accountPhone;
+    const phoneB = phoneA.startsWith('258') ? phoneA : '258' + phoneA;
+
+    if (!phoneA) {
+      throw new Error('Informe o contacto para validar este cupom personalizado.');
+    }
+
+    if (cleanAssignedPhone !== phoneA && cleanAssignedPhone !== phoneB) {
+      throw new Error('Este cupom é personalizado para outro cliente.');
+    }
+  }
+
+  return c;
+}
 
 /* ─── AUTH ─── */
 function sbCurrentUser() {
@@ -147,17 +327,139 @@ function doLogout() {
 }
 
 /* ─── CART ─── */
-function getCart()       { try { return JSON.parse(localStorage.getItem('kimeraCart') || '[]'); } catch { return []; } }
-function saveCart(cart)  { localStorage.setItem('kimeraCart', JSON.stringify(cart)); updateCartBadge(); }
+function getCart() {
+  try {
+    const cart = JSON.parse(localStorage.getItem('kimeraCart') || '[]');
+    return Array.isArray(cart) ? cart.map(normalizeCartItem) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(cart) {
+  const normalized = Array.isArray(cart) ? cart.map(normalizeCartItem) : [];
+  localStorage.setItem('kimeraCart', JSON.stringify(normalized));
+
+  if (!normalized.length) {
+    clearAppliedCoupon();
+  }
+
+  updateCartBadge();
+}
+
 function updateCartBadge() {
   const n = getCart().reduce((s, i) => s + (i.quantity || 1), 0);
   document.querySelectorAll('.cart-badge').forEach(b => b.textContent = n);
 }
+
+function normalizeCartColor(color, colorName = '', colorHex = '') {
+  const existingName = String(colorName || '').trim();
+  const existingHex = String(colorHex || '').trim();
+
+  if (existingName || existingHex) {
+    return {
+      color_hex: existingHex || (isHexColor(existingName) ? existingName : ''),
+      color_name: existingName && !isHexColor(existingName) ? existingName : ''
+    };
+  }
+
+  if (!color) {
+    return {
+      color_hex: '',
+      color_name: ''
+    };
+  }
+
+  if (typeof color === 'object') {
+    const hex = String(color.hex || '').trim();
+    const name = String(color.name || '').trim();
+
+    return {
+      color_hex: hex,
+      color_name: name && !isHexColor(name) ? name : ''
+    };
+  }
+
+  const str = String(color).trim();
+  const m = str.match(/^(#[0-9A-Fa-f]{6})(?:\(([^)]+)\))?$/);
+
+  if (m) {
+    return {
+      color_hex: m[1],
+      color_name: m[2] ? m[2].trim() : ''
+    };
+  }
+
+  if (str.startsWith('#')) {
+    return {
+      color_hex: str,
+      color_name: ''
+    };
+  }
+
+  return {
+    color_hex: '',
+    color_name: str
+  };
+}
+
+function isHexColor(value = '') {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(value || '').trim());
+}
+
+function normalizeCartItem(item = {}) {
+  const color = normalizeCartColor(item.color, item.color_name, item.color_hex);
+  const qty = parseInt(item.quantity || 1, 10);
+
+  const normalized = {
+    product_id: item.product_id || item.id || null,
+    name: item.name || 'Produto',
+    quantity: Number.isFinite(qty) && qty > 0 ? qty : 1,
+    price: Number(item.price || 0),
+    size: item.size || '',
+    color_name: color.color_name,
+    color_hex: color.color_hex,
+    thumbnail_url: item.thumbnail_url || item.thumbnail || '',
+    store_id: item.store_id || '',
+    store_name: item.store_name || ''
+  };
+
+  if (item.customization) {
+    normalized.customization = item.customization;
+  }
+
+  return normalized;
+}
+
 function addToCart(p, size, color, qty = 1) {
   const cart = getCart();
-  const idx  = cart.findIndex(i => i.product_id === p.id && i.size === size && i.color === color);
-  if (idx > -1) cart[idx].quantity += qty;
-  else cart.push({ product_id:p.id, name:p.name, price:p.price, thumbnail_url:p.thumbnail_url||p.thumbnail, store_id:p.store_id, store_name:p.store_name, size, color, quantity:qty });
+  const normalizedColor = normalizeCartColor(color);
+  const productId = p.product_id || p.id || null;
+
+  const idx = cart.findIndex(i =>
+    i.product_id === productId &&
+    (i.size || '') === (size || '') &&
+    (i.color_name || '') === normalizedColor.color_name &&
+    (i.color_hex || '') === normalizedColor.color_hex
+  );
+
+  if (idx > -1) {
+    cart[idx].quantity += qty;
+  } else {
+    cart.push(normalizeCartItem({
+      product_id: productId,
+      name: p.name,
+      price: p.price,
+      thumbnail_url: p.thumbnail_url || p.thumbnail || '',
+      store_id: p.store_id || '',
+      store_name: p.store_name || '',
+      quantity: qty,
+      size: size || '',
+      color_name: normalizedColor.color_name,
+      color_hex: normalizedColor.color_hex
+    }));
+  }
+
   saveCart(cart);
   showToast(`${p.name} adicionado ao carrinho!`);
 }

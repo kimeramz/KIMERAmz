@@ -122,6 +122,10 @@ function renderProductGrid(products, container) {
     const img = p.thumbnail_url
       ? `<img src="${p.thumbnail_url}" alt="${p.name}" loading="lazy">`
       : `<div class="no-img-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+    const rating = Number(p.rating || 0);
+    const ratingStars = rating > 0
+      ? '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating))
+      : '☆☆☆☆☆';
 
     return `
       <div class="product-card" data-id="${p.id}" style="cursor:pointer;">
@@ -134,13 +138,15 @@ function renderProductGrid(products, container) {
         <div class="product-info">
           <p class="product-store">${store}</p>
           <h3 class="product-name">${p.name}</h3>
-
+          <div class="product-rating-mini">
+            ${ratingStars}
+            <span>${rating.toFixed(1)} (${p.review_count || 0})</span>
+          </div>
           <div class="product-footer">
-            <div>
+            <div class="product-price-wrap">
               <span class="product-price">${fmtMT(p.price)}</span>
               ${p.original_price > p.price ? `<span class="product-original">${fmtMT(p.original_price)}</span>` : ''}
             </div>
-
             <button class="btn btn-red btn-sm"
               onclick="event.preventDefault();event.stopPropagation();quickAdd('${p.id}',${JSON.stringify(p.name)},${p.price},${JSON.stringify(p.thumbnail_url || '')},'${p.store_id || ''}',${JSON.stringify(store)})">
               +
@@ -195,8 +201,8 @@ async function loadStores() {
       <a href="/pages/lojas?store=${s.id}" class="store-card">
         <div class="store-logo">
           ${s.logo_url
-            ? `<img src="${s.logo_url}" alt="${s.name}">`
-            : `<div class="store-logo-placeholder">${s.name.slice(0, 2).toUpperCase()}</div>`}
+        ? `<img src="${s.logo_url}" alt="${s.name}">`
+        : `<div class="store-logo-placeholder">${s.name.slice(0, 2).toUpperCase()}</div>`}
         </div>
         <div class="store-info">
           <h3>${s.name}</h3>
@@ -272,8 +278,8 @@ function updateUserBtn() {
     role === 'super_admin'
       ? '/pages/admin'
       : role === 'store_owner'
-      ? '/pages/dashboard'
-      : '/pages/login';
+        ? '/pages/dashboard'
+        : '/pages/login';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -283,4 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStores();
   loadSocialProof();
   updateUserBtn();
+ trackPageVisit({
+    pageType: 'home',
+    pagePath: window.location.pathname
+  });
 });

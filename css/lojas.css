@@ -59,3 +59,188 @@
   .store-page-header{height:160px;}
 }
 @media(max-width:480px){.products-grid{grid-template-columns:minmax(0,1fr);}}
+
+
+/* responsive catalog cards */
+.lojas-content{
+  min-width:0;
+}
+
+.products-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));
+  align-items:stretch;
+}
+
+.product-card{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  height:100%;
+  border-radius:8px;
+}
+
+.product-img{
+  aspect-ratio:1 / 1;
+  flex-shrink:0;
+}
+
+.product-info{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  flex:1;
+  min-width:0;
+}
+
+.product-store,
+.product-name{
+  overflow-wrap:anywhere;
+}
+
+.product-name{
+  min-height:34px;
+  margin-bottom:0;
+}
+
+.product-rating-mini{
+  min-height:18px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  font-size:12px;
+  color:#757575;
+  line-height:1.35;
+}
+
+.product-rating-mini span{
+  color:#757575;
+}
+
+.product-footer{
+  margin-top:auto;
+  align-items:flex-end;
+}
+
+.product-price-wrap{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+@media(max-width:768px){
+  .filters-panel{
+    border-radius:8px 8px 0 0;
+  }
+}
+
+@media (max-width: 768px){
+  .products-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px;
+  }
+
+  .product-card{
+    border-radius:10px;
+  }
+
+  .product-info{
+    padding:10px;
+  }
+
+  .product-store{
+    font-size:9px;
+  }
+
+  .product-name{
+    font-size:12px;
+    line-height:1.2;
+    min-height:30px;
+  }
+
+  .product-price{
+    font-size:13px;
+  }
+
+  .btn-sm{
+    padding:5px 10px;
+    font-size:11px;
+  }
+}
+
+@media (max-width: 360px){
+  .products-grid{
+    gap:8px;
+  }
+
+  .product-name{
+    font-size:11px;
+  }
+
+  .product-price{
+    font-size:12px;
+  }
+}
+
+
+
+
+.filters-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:all .25s ease;
+  z-index:250;
+}
+
+.filters-overlay.open{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+
+
+@media (max-width: 768px){
+  .lojas-layout{
+    grid-template-columns:1fr;
+  }
+
+  .filters-panel{
+    position:fixed !important;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:300;
+    background:#fff;
+    border-radius:18px 18px 0 0;
+    padding:20px 18px 22px;
+    max-height:72vh;
+    overflow-y:auto;
+    box-shadow:0 -8px 24px rgba(0,0,0,.12);
+
+    transform:translateY(calc(100% + 40px));
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+
+    transition:
+      transform .25s ease,
+      opacity .2s ease,
+      visibility .2s ease;
+  }
+
+  .filters-panel.open{
+    transform:translateY(0);
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+  }
+
+  body.filters-open{
+    overflow:hidden;
+  }
+}

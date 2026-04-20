@@ -1,5 +1,3 @@
-console.log('[LOJAS] JS certo carregado:', window.location.href);
-
 let allProducts = [];
 let currentView = 'grid';
 
@@ -127,9 +125,9 @@ function applyFilters() {
   renderProducts(filtered, !!getParams().storeId);
   setResultsCount(`${filtered.length} produto${filtered.length !== 1 ? 's' : ''}`);
 
-  if (window.innerWidth <= 900) {
-    qs('filtersPanel')?.classList.remove('open');
-  }
+  if (window.innerWidth <= 1100) {
+  closeFiltersPanel();
+}
 }
 
 function renderStoreHeader(store) {
@@ -144,7 +142,7 @@ function renderStoreHeader(store) {
 
   const logo = store.logo_url
     ? `<img src="${store.logo_url}" alt="${store.name}" style="width:100%;height:100%;object-fit:cover;">`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#E53935;color:#fff;font-weight:800;font-size:28px;">${store.name.slice(0,2).toUpperCase()}</div>`;
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#E53935;color:#fff;font-weight:800;font-size:28px;">${store.name.slice(0, 2).toUpperCase()}</div>`;
 
   container.innerHTML = `
     <div style="max-width:1280px;margin:20px auto 0;background:#fff;border:1px solid #EEE;border-radius:20px;overflow:hidden;">
@@ -164,7 +162,7 @@ function renderStoreHeader(store) {
             ${store.location ? `<span style="font-size:13px;color:#888;">📍 ${store.location}</span>` : ''}
             ${store.category ? `<span style="font-size:13px;color:#888;">🏷️ ${store.category}</span>` : ''}
             ${store.rating ? `<span style="font-size:13px;color:#888;">⭐ ${Number(store.rating).toFixed(1)}</span>` : ''}
-            ${store.whatsapp ? `<a href="https://wa.me/${String(store.whatsapp).replace(/\D/g,'')}" target="_blank" style="font-size:13px;color:#16A34A;font-weight:700;">WhatsApp</a>` : ''}
+            ${store.whatsapp ? `<a href="https://wa.me/${String(store.whatsapp).replace(/\D/g, '')}" target="_blank" style="font-size:13px;color:#16A34A;font-weight:700;">WhatsApp</a>` : ''}
           </div>
         </div>
       </div>
@@ -192,35 +190,46 @@ function renderProducts(products, isStoreMode = false) {
     return;
   }
 
-  grid.innerHTML = products.map(p => `
-    <div class="product-card" data-id="${p.id}" style="cursor:pointer;">
-      <div class="product-img">
-        ${p.thumbnail_url
-          ? `<img src="${p.thumbnail_url}" alt="${p.name}" loading="lazy">`
-          : '<div class="no-img-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'}
-        ${p.is_new ? '<span class="badge-novo">Novo</span>' : ''}
-        ${p.discount_pct > 0 ? `<span class="badge-desc">-${p.discount_pct}%</span>` : ''}
-      </div>
+  grid.innerHTML = products.map(p => {
+    const storeName = p.stores?.name || p.store_name || 'Loja';
+    const rating = Number(p.rating || 0);
+    const ratingStars = rating > 0
+      ? '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating))
+      : '☆☆☆☆☆';
 
-      <div class="product-info">
-        <p class="product-store">${p.stores?.name || p.store_name || 'Loja'}</p>
-        <h3 class="product-name">${p.name}</h3>
+    return `
+      <div class="product-card" data-id="${p.id}" style="cursor:pointer;">
+        <div class="product-img">
+          ${p.thumbnail_url
+        ? `<img src="${p.thumbnail_url}" alt="${p.name}" loading="lazy">`
+        : '<div class="no-img-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'}
+          ${p.is_new ? '<span class="badge-novo">Novo</span>' : ''}
+          ${p.discount_pct > 0 ? `<span class="badge-desc">-${p.discount_pct}%</span>` : ''}
+        </div>
 
-        <div class="product-footer">
-          <div>
-            <span class="product-price">${fmtMT(p.price)}</span>
-            ${p.original_price > p.price ? `<span class="product-original">${fmtMT(p.original_price)}</span>` : ''}
+        <div class="product-info">
+          <p class="product-store">${storeName}</p>
+          <h3 class="product-name">${p.name}</h3>
+          <div class="product-rating-mini">
+            ${ratingStars}
+            <span>${rating.toFixed(1)} (${p.review_count || 0})</span>
           </div>
 
-          <button
-            class="btn btn-red btn-sm"
-            onclick="event.preventDefault();event.stopPropagation();addToCart({id:'${p.id}',name:'${String(p.name).replace(/'/g, "\\'")}',price:${p.price},thumbnail_url:'${p.thumbnail_url || ''}',store_id:'${p.store_id || ''}',store_name:'${p.stores?.name || ''}'},null,null,1)">
-            +
-          </button>
+          <div class="product-footer">
+            <div class="product-price-wrap">
+              <span class="product-price">${fmtMT(p.price)}</span>
+              ${p.original_price > p.price ? `<span class="product-original">${fmtMT(p.original_price)}</span>` : ''}
+            </div>
+            <button
+              class="btn btn-red btn-sm"
+              onclick="event.preventDefault();event.stopPropagation();addToCart({id:${JSON.stringify(p.id)},name:${JSON.stringify(p.name)},price:${Number(p.price || 0)},thumbnail_url:${JSON.stringify(p.thumbnail_url || '')},store_id:${JSON.stringify(p.store_id || '')},store_name:${JSON.stringify(storeName)}},null,null,1)">
+              +
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   bindProductCardClicks();
 }
@@ -271,6 +280,38 @@ async function loadStorePage(storeId) {
   }
 }
 
+
+function openFiltersPanel() {
+  const panel = document.getElementById('filtersPanel');
+  const overlay = document.getElementById('filtersOverlay');
+
+  if (!panel) return;
+
+  panel.classList.add('open');
+  overlay?.classList.add('open');
+  document.body.classList.add('filters-open');
+}
+
+function closeFiltersPanel() {
+  const panel = document.getElementById('filtersPanel');
+  const overlay = document.getElementById('filtersOverlay');
+
+  panel?.classList.remove('open');
+  overlay?.classList.remove('open');
+  document.body.classList.remove('filters-open');
+}
+
+function toggleFilters() {
+  const panel = document.getElementById('filtersPanel');
+  if (!panel) return;
+
+  if (panel.classList.contains('open')) {
+    closeFiltersPanel();
+  } else {
+    openFiltersPanel();
+  }
+}
+
 async function loadCatalogPage() {
   const { q, cat } = getParams();
   const searchInput = qs('searchInput');
@@ -284,7 +325,7 @@ async function loadCatalogPage() {
   } else if (cat) {
     setHeader(cat, 'Produtos filtrados por categoria');
   } else {
-    setHeader('Produtos & Lojas', 'Descubra as melhores lojas do marketplace');
+    setHeader('Produtos', 'Descubra os melhores produtos do marketplace');
   }
 
   let query = '?is_active=eq.true&select=*,stores(id,name,logo_url)&order=created_at.desc';
@@ -316,7 +357,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (storeId) {
     await loadStorePage(storeId);
+    trackPageVisit({
+      pageType: 'store',
+      pagePath: window.location.pathname + window.location.search,
+      storeId
+    });
   } else {
     await loadCatalogPage();
+    trackPageVisit({
+      pageType: 'catalog',
+      pagePath: window.location.pathname + window.location.search
+    });
   }
 });

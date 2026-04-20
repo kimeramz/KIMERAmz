@@ -17,10 +17,10 @@
 .track-date{font-size:12px;color:#9E9E9E;margin-bottom:3px;}
 .track-total{font-size:13px;font-weight:600;}
 .track-status-pill{margin-left:auto;align-self:flex-start;}
-.status-pending,.status-processing{background:#FEF3C7;color:#92400E;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;}
-.status-paid,.status-delivered{background:#DCFCE7;color:#14532D;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;}
-.status-production,.status-shipped{background:#DBEAFE;color:#1E3A8A;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;}
-.status-cancelled{background:#FEE2E2;color:#991B1B;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.status-pending,.status-processing,.status-awaiting_proof{background:#FEF3C7;color:#92400E;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;}
+.status-paid,.status-delivered{background:#DCFCE7;color:#14532D;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;}
+.status-production,.status-shipped{background:#DBEAFE;color:#1E3A8A;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;}
+.status-cancelled,.status-failed{background:#FEE2E2;color:#991B1B;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;}
 .tracking-timeline{display:flex;flex-direction:column;margin-bottom:28px;}
 .timeline-step{display:flex;align-items:flex-start;gap:16px;}
 .t-icon{width:40px;height:40px;border-radius:50%;background:#F5F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;border:2px solid #EEEEEE;}
@@ -51,3 +51,14 @@
 .empty-track h3{font-size:18px;font-weight:700;margin:16px 0 8px;color:#757575;}
 .empty-track p{font-size:14px;color:#BDBDBD;}
 @media(max-width:600px){.search-order{flex-direction:column;}.tracking-product{flex-direction:column;}}
+
+.tracking-product > div{
+  min-width:0;
+}
+
+.tracking-card,
+.success-banner,
+.upload-area-btn,
+.proof-img-wrap{
+  border-radius:8px;
+}

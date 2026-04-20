@@ -77,6 +77,10 @@
         <div class="coupon-row">
           <input type="text" id="cupomInput" placeholder="Inserir código de desconto..."/>
           <button class="btn btn-outline" onclick="applyCoupon()">Verificar</button>
+          <button type="button" class="btn btn-outline" onclick="removeCoupon()">Remover</button>
+
+          <div id="cupomAppliedInfo" style="display:none;margin-top:10px;font-size:13px;color:#16A34A;"></div>
+
         </div>
         <p class="coupon-msg" id="couponMsg"></p>
       </div>
@@ -158,10 +162,6 @@
           <div class="ot-row"><span>Desconto</span><span id="checkDiscount" style="color:#16A34A;">0,00 MT</span></div>
           <div class="ot-row"><span>Entrega</span><span id="checkDelivery">—</span></div>
           <div class="ot-row total"><span>TOTAL</span><span id="checkTotal">—</span></div>
-          <div class="ot-row commission-note">
-            <span>Comissão Kimera (8%)</span>
-            <span id="checkCommission" style="color:#9E9E9E;font-size:12px;">—</span>
-          </div>
         </div>
       </div>
     </aside>
