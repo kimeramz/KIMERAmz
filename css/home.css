@@ -96,6 +96,141 @@
 .product-original{font-size:11px;color:#BDBDBD;text-decoration:line-through;margin-left:4px;}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px;}
 
+/*BANNER LETRAS PEQUENAS*/
+
+/* MOBILE — reduzir ainda mais o conteúdo do banner */
+@media (max-width: 768px) {
+  .banner-section {
+    position: relative;
+  }
+
+  .banner-carousel {
+    min-height: 280px;
+  }
+
+  .banner-carousel .btn,
+  .banner-carousel button,
+  .banner-carousel a.btn {
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    min-height: 36px !important;
+    border-radius: 10px !important;
+    width: auto !important;
+  }
+
+  .banner-carousel h1,
+  .banner-carousel h2,
+  .banner-carousel .banner-title {
+    font-size: 30px !important;
+    line-height: 1.02 !important;
+    margin: 6px 0 !important;
+    max-width: 210px;
+  }
+
+  .banner-carousel p,
+  .banner-carousel .banner-subtitle,
+  .banner-carousel .banner-desc {
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    max-width: 180px;
+  }
+
+  .banner-carousel .banner-tag,
+  .banner-carousel .badge,
+  .banner-carousel .promo-tag {
+    padding: 5px 12px !important;
+    font-size: 11px !important;
+    border-radius: 999px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .banner-carousel {
+    min-height: 240px;
+  }
+
+  .banner-carousel h1,
+  .banner-carousel h2,
+  .banner-carousel .banner-title {
+    font-size: 24px !important;
+    line-height: 1.02 !important;
+    margin: 5px 0 !important;
+    max-width: 170px;
+  }
+
+  .banner-carousel p,
+  .banner-carousel .banner-subtitle,
+  .banner-carousel .banner-desc {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    max-width: 150px;
+  }
+
+  .banner-carousel .btn,
+  .banner-carousel button,
+  .banner-carousel a.btn {
+    padding: 7px 14px !important;
+    font-size: 12px !important;
+    min-height: 32px !important;
+    border-radius: 9px !important;
+  }
+
+  .banner-carousel .banner-tag,
+  .banner-carousel .badge,
+  .banner-carousel .promo-tag {
+    padding: 4px 10px !important;
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .banner-carousel {
+    min-height: 220px;
+  }
+
+  .banner-carousel h1,
+  .banner-carousel h2,
+  .banner-carousel .banner-title {
+    font-size: 21px !important;
+    max-width: 150px;
+  }
+
+  .banner-carousel p,
+  .banner-carousel .banner-subtitle,
+  .banner-carousel .banner-desc {
+    font-size: 10px !important;
+    max-width: 135px;
+  }
+
+  .banner-carousel .btn,
+  .banner-carousel button,
+  .banner-carousel a.btn {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    min-height: 30px !important;
+  }
+
+  .banner-carousel .banner-tag,
+  .banner-carousel .badge,
+  .banner-carousel .promo-tag {
+    padding: 4px 9px !important;
+    font-size: 9px !important;
+  }
+}
+
+/*FIM DO BANNER LETRA*/
+
+.banner-nav{
+  display: none !important;
+}
+
+@media (max-width: 768px){
+  .banner-nav{
+    display: none !important;
+  }
+}
+
 .categories-section{
   padding:36px 24px 0;
   display:flex;
