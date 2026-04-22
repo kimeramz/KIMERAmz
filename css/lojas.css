@@ -251,7 +251,7 @@
 /* PRODUTOS DA LOJA — DESKTOP */
 #productsGrid {
   display: grid !important;
-  grid-template-columns: repeat(4, minmax(270px, 1fr)) !important;
+  grid-template-columns: repeat(4, minmax(220px, 1fr)) !important;
   gap: 20px !important;
   align-items: start;
   width: 100%;
