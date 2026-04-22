@@ -1,6 +1,31 @@
 let allProducts = [];
 let currentView = 'grid';
 
+function normalizeStoreText(text = '') {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function injectSoftBreaks(text = '', every = 12) {
+  const clean = normalizeStoreText(text);
+
+  return clean.replace(
+    new RegExp(`([^\\s-]{${every}})(?=[^\\s-])`, 'g'),
+    '$1\u200B'
+  );
+}
+
+function truncateStoreText(text = '', max = 120) {
+  const clean = normalizeStoreText(text);
+
+  if (clean.length <= max) {
+    return injectSoftBreaks(clean);
+  }
+
+  return injectSoftBreaks(clean.slice(0, max).trim()) + '...';
+}
+
 const DEFAULT_CATEGORIES = [
   'Camisetas',
   'Calças',
@@ -46,8 +71,8 @@ function setHeader(title, subtitle = '') {
   const t = qs('lojaPageTitle');
   const s = qs('lojaPageSub');
 
-  if (t) t.textContent = title;
-  if (s) s.textContent = subtitle;
+  if (t) t.textContent = normalizeInputText(title);
+  if (s) s.textContent = safeDisplayText(subtitle, 140);
 }
 
 function setResultsCount(text) {
@@ -155,7 +180,7 @@ function renderStoreHeader(store) {
         <div style="flex:1;min-width:240px;">
           <h2 style="font-size:32px;font-weight:900;margin-bottom:8px;">${store.name}</h2>
           <p style="font-size:14px;color:#666;line-height:1.6;margin-bottom:10px;">
-            ${store.description || 'Sem descrição disponível.'}
+            ${truncateStoreText(store.description, 60) || 'Sem descrição disponível.'}
           </p>
 
           <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -257,7 +282,10 @@ async function loadStorePage(storeId) {
     }
 
     renderStoreHeader(store);
-    setHeader(store.name, store.description || 'Explore os produtos desta loja');
+    setHeader(
+      store.name,
+      store.description || 'Explore os produtos desta loja'
+    );
     setResultsCount('A carregar produtos...');
 
     const filtersPanel = qs('filtersPanel');
@@ -280,6 +308,32 @@ async function loadStorePage(storeId) {
   }
 }
 
+function normalizeInputText(text = '') {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function injectSoftBreaks(text = '', every = 12) {
+  const clean = normalizeInputText(text);
+
+  return clean.replace(
+    new RegExp(`([^\\s-]{${every}})(?=[^\\s-])`, 'g'),
+    '$1\u200B'
+  );
+}
+
+function safeDisplayText(text = '', max = 140) {
+  const clean = normalizeInputText(text);
+
+  if (!clean) return '';
+
+  if (clean.length <= max) {
+    return injectSoftBreaks(clean);
+  }
+
+  return injectSoftBreaks(clean.slice(0, max).trim()) + '...';
+}
 
 function openFiltersPanel() {
   const panel = document.getElementById('filtersPanel');

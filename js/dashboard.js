@@ -474,6 +474,34 @@ function toggleVendorColor(btn) {
   btn.classList.toggle('active');
   syncHiddenProductColorsInput();
 }
+
+function normalizeInputText(text = '') {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function injectSoftBreaks(text = '', every = 12) {
+  const clean = normalizeInputText(text);
+
+  return clean.replace(
+    new RegExp(`([^\\s-]{${every}})(?=[^\\s-])`, 'g'),
+    '$1\u200B'
+  );
+}
+
+function sanitizeSellerDescription(text = '', max = 180) {
+  const clean = normalizeInputText(text);
+
+  if (!clean) return '';
+
+  const limited = clean.length > max
+    ? clean.slice(0, max).trim()
+    : clean;
+
+  return injectSoftBreaks(limited);
+}
+
 //INICIA O CAMPO DE PRODUTO LIMPO
 
 function openNovoProduto() {
@@ -558,7 +586,7 @@ async function saveProduto() {
       original_price: parseFloat(document.getElementById('prodOrigPrice').value || price) || price,
       category: document.getElementById('prodCategory').value || '',
       discount_pct: parseInt(document.getElementById('prodDiscount').value || '0', 10) || 0,
-      description: document.getElementById('prodDesc').value || '',
+      description: sanitizeSellerDescription (document.getElementById('prodDesc').value,220),
       sizes: document.getElementById('prodSizes').value.split(',').map(s => s.trim()).filter(Boolean),
       colors: selectedColors,
       is_featured: document.getElementById('prodFeatured').checked,
@@ -1294,7 +1322,7 @@ async function saveMyLoja() {
 
     const payload = {
       name: document.getElementById('editLojaName').value,
-      description: document.getElementById('editLojaDesc').value,
+      description: sanitizeSellerDescription(document.getElementById('editLojaDesc').value, 180),
       location: document.getElementById('editLojaLocation').value,
       ...(logo_url && { logo_url }),
       ...(banner_url && { banner_url })
