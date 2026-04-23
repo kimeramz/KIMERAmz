@@ -276,7 +276,7 @@
   height: auto !important;
   max-height: none !important;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 7px;
 }
 
 #productsGrid .product-img img {
