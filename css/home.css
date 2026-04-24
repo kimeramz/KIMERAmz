@@ -1,7 +1,36 @@
-.banner-section{position:relative;overflow:hidden;height:465px;background:#111;}
-.banner-carousel{height:100%;position:relative;}
-.banner-slide{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;display:flex;align-items:center;}
-.banner-slide.active{opacity:1;z-index:1;}
+.banner-section{
+  position:relative;
+  overflow:hidden;
+  width:100%;
+  aspect-ratio:1920 / 700;
+  height:auto;
+  background:#0d0d0d;
+}
+
+.banner-carousel{
+  width:100%;
+  height:100%;
+  position:relative;
+  background:#0d0d0d;
+}
+
+.banner-slide{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  transition:opacity .6s ease;
+  display:flex;
+  align-items:center;
+  background-position:center center !important;
+  background-size:contain !important;
+  background-repeat:no-repeat !important;
+  background-color:#0d0d0d !important;
+}
+
+.banner-slide.active{
+  opacity:1;
+  z-index:1;
+}
 .hero-content{position:relative;z-index:2;padding:48px 60px;max-width:560px;}
 .hero-tag{display:inline-block;background:#E53935;color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:14px;letter-spacing:.5px;}
 .hero-content h1{font-size:48px;font-weight:900;line-height:1.1;color:#fff;margin-bottom:12px;text-shadow:0 2px 8px rgba(0,0,0,0.3);}
@@ -77,8 +106,33 @@
 .footer-bottom{border-top:1px solid #1E1E1E;padding:14px 24px;text-align:center;}
 .footer-bottom p{font-size:11px;color:#333;}
 @media(max-width:1024px){.products-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.stores-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.footer-inner{grid-template-columns:1fr 1fr;}.social-grid{grid-template-columns:repeat(6,1fr);}}
-@media(max-width:768px){.banner-section{height:320px;}.hero-content{padding:32px 24px;}.hero-content h1{font-size:32px;}.products-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}.stores-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.category-img{width:64px;height:64px;font-size:24px;}.social-grid{grid-template-columns:repeat(4,1fr);}.footer-inner{grid-template-columns:1fr;gap:28px;}}
-@media(max-width:480px){.banner-section{height:260px;}.hero-content h1{font-size:26px;}.products-grid{grid-template-columns:minmax(0,1fr);}.stores-grid{grid-template-columns:1fr;}.social-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:768px){
+  .banner-section{
+    width:100%;
+    aspect-ratio:1920 / 700;
+    height:auto;
+  }
+
+  .hero-content{
+    padding:32px 24px;
+  }
+
+  .hero-content h1{
+    font-size:32px;
+  }
+}
+
+@media(max-width:480px){
+  .banner-section{
+    width:100%;
+    aspect-ratio:1920 / 700;
+    height:auto;
+  }
+
+  .hero-content h1{
+    font-size:26px;
+  }
+}
 
 /* product cards shared on homepage */
 .product-card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #EEEEEE;transition:transform .2s,box-shadow .2s;display:block;text-decoration:none;color:inherit;}
@@ -96,16 +150,20 @@
 .product-original{font-size:11px;color:#BDBDBD;text-decoration:line-through;margin-left:4px;}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px;}
 
-/*BANNER LETRAS PEQUENAS*/
-
-/* MOBILE — reduzir ainda mais o conteúdo do banner */
+/* BANNER — reduzir só o conteúdo, sem mexer na altura real */
 @media (max-width: 768px) {
   .banner-section {
     position: relative;
   }
 
   .banner-carousel {
-    min-height: 280px;
+    min-height: unset !important;
+    height: 100% !important;
+  }
+
+  .hero-content {
+    padding: 24px 18px !important;
+    max-width: 240px !important;
   }
 
   .banner-carousel .btn,
@@ -147,7 +205,13 @@
 
 @media (max-width: 430px) {
   .banner-carousel {
-    min-height: 240px;
+    min-height: unset !important;
+    height: 100% !important;
+  }
+
+  .hero-content {
+    padding: 18px 14px !important;
+    max-width: 190px !important;
   }
 
   .banner-carousel h1,
@@ -186,7 +250,13 @@
 
 @media (max-width: 360px) {
   .banner-carousel {
-    min-height: 220px;
+    min-height: unset !important;
+    height: 100% !important;
+  }
+
+  .hero-content {
+    padding: 14px 12px !important;
+    max-width: 170px !important;
   }
 
   .banner-carousel h1,
@@ -218,8 +288,6 @@
     font-size: 9px !important;
   }
 }
-
-/*FIM DO BANNER LETRA*/
 
 .banner-nav{
   display: none !important;
@@ -386,4 +454,109 @@
   .product-price{
     font-size:12px;
   }
+}
+
+.category-img{
+  width: 64px;
+  height: 64px;
+}
+
+.category-item span{
+  font-size: 12px;
+}
+
+.categories-scroll{
+  gap: 12px;
+}
+
+/* HOME — mostrar imagem completa como na página da loja */
+#productsGrid .product-img,
+#bestsellerGrid .product-img {
+  aspect-ratio: 1 / 1 !important;
+  background: #F5F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#productsGrid .product-img img,
+#bestsellerGrid .product-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  object-position: center center !important;
+  display: block;
+  background: #F5F5F5;
+}
+
+@media (max-width: 768px){
+  #productsGrid .product-img,
+  #bestsellerGrid .product-img{
+    aspect-ratio: 0.92 / 1 !important;
+    background: #F5F5F5;
+    overflow: hidden;
+  }
+
+  #productsGrid .product-img img,
+  #bestsellerGrid .product-img img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover !important;
+    object-position: center top !important;
+    display: block;
+  }
+}
+/* fim*/
+@media (max-width: 430px){
+  .badge-novo,
+  .badge-desc{
+    top: 6px;
+    font-size: 7px;
+    padding: 2px 7px;
+    border-radius: 12px;
+  }
+
+  .badge-novo{
+    left: 6px;
+  }
+
+  .badge-desc{
+    right: 6px;
+  }
+}
+
+.product-store{
+  font-size: 10px;
+  font-weight: 600;
+  color: #E53935;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 4px;
+}
+
+.product-name{
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #222;
+}
+
+.product-price{
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.product-original{
+  font-size: 11px;
+  font-weight: 400;
+  color: #BDBDBD;
+  text-decoration: line-through;
+  margin-left: 4px;
+}
+
+.badge-novo,
+.badge-desc{
+  font-weight: 600;
 }

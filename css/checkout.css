@@ -66,3 +66,125 @@
 .pay-detail-row strong{font-weight:700;}
 @media(max-width:900px){.checkout-layout{grid-template-columns:1fr;}.order-summary{position:static;}}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr;}.checkout-steps{gap:6px;}.step-line{min-width:15px;}}
+
+.confirm-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.confirm-check input[type="checkbox"]{
+  width:20px;
+  height:20px;
+  cursor:pointer;
+}
+
+.confirm-check label{
+  font-size:15px;
+  color:#444;
+}
+
+.terms-link{
+  background:none;
+  border:none;
+  padding:0;
+  margin:0;
+  color:#E53935;
+  font-size:15px;
+  cursor:pointer;
+  text-decoration:none;
+}
+
+.terms-link:hover{
+  text-decoration:underline;
+}
+
+#termsModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:20px;
+}
+
+#termsModal.open{
+  display:flex;
+}
+
+.terms-modal{
+  width:100%;
+  max-width:720px;
+  max-height:85vh;
+  overflow:hidden;
+  background:#fff;
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+}
+
+.terms-modal .modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 20px;
+  border-bottom:1px solid #eee;
+}
+
+.terms-modal .modal-body{
+  padding:20px;
+  overflow:auto;
+}
+
+.terms-modal .modal-body h4{
+  margin:0 0 8px;
+  font-size:16px;
+  color:#111;
+}
+
+.terms-modal .modal-body p{
+  margin:0 0 16px;
+  font-size:14px;
+  line-height:1.6;
+  color:#555;
+}
+
+.terms-modal .modal-footer{
+  padding:16px 20px;
+  border-top:1px solid #eee;
+  display:flex;
+  justify-content:flex-end;
+}
+
+.modal-close{
+  background:none;
+  border:none;
+  font-size:20px;
+  cursor:pointer;
+}
+
+@media (max-width: 768px){
+  .confirm-check{
+    align-items:flex-start;
+    gap:6px;
+  }
+
+  .confirm-check label,
+  .terms-link{
+    font-size:14px;
+  }
+
+  .terms-modal{
+    max-height:90vh;
+    border-radius:14px;
+  }
+
+  .terms-modal .modal-header,
+  .terms-modal .modal-body,
+  .terms-modal .modal-footer{
+    padding:16px;
+  }
+}

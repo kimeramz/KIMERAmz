@@ -805,6 +805,29 @@ async function placeOrderWhatsApp() {
   }
 }
 
+function openTermsModal() {
+  const modal = document.getElementById('termsModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeTermsModal() {
+  const modal = document.getElementById('termsModal');
+  if (modal) modal.classList.remove('open');
+}
+
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('termsModal');
+  if (modal && e.target === modal) {
+    closeTermsModal();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeTermsModal();
+  }
+});
+
 function showMpesaUnavailable() {
   showToast('O pagamento por M-pesa encontra-se temporariamente fora de serviço. Use o botão do WhatsApp.', 'warning');
 }
