@@ -5,6 +5,57 @@
 
 let currentCustomProjectStatusFilter = 'all';
 
+window.openPaymentApprovalById = async function (id) {
+  if (!id) {
+    showToast('ID do pedido inválido.', 'error');
+    return;
+  }
+
+  try {
+    const rows = await sbGet('orders', `?id=eq.${id}&select=*`);
+    const order = rows?.[0];
+
+    if (!order) {
+      showToast('Pedido não encontrado.', 'error');
+      return;
+    }
+
+    if (typeof openPaymentApproval !== 'function') {
+      showToast('Função de aprovação não encontrada.', 'error');
+      console.error('[ADMIN] openPaymentApproval não existe');
+      return;
+    }
+
+    openPaymentApproval(order);
+  } catch (e) {
+    console.error('[ADMIN] openPaymentApprovalById:', e);
+    showToast('Erro ao abrir aprovação de repasse.', 'error');
+  }
+};
+
+function shouldDeactivateFinancialStatus(status = '') {
+  return ['cancelled', 'refunded', 'failed'].includes(String(status || '').trim().toLowerCase());
+}
+
+function shouldActivateFinancialStatus(status = '') {
+  return ['paid', 'production', 'shipped', 'delivered'].includes(String(status || '').trim().toLowerCase());
+}
+
+function buildAdminOrderFinancialPatch(status = '', paymentStatus = '') {
+  const normalizedStatus = String(status || '').trim().toLowerCase();
+  const normalizedPayment = String(paymentStatus || '').trim().toLowerCase();
+
+  const patch = {};
+
+  if (shouldDeactivateFinancialStatus(normalizedStatus)) {
+    patch.financial_status = 'inactive';
+  } else if (shouldActivateFinancialStatus(normalizedStatus) && normalizedPayment === 'paid') {
+    patch.financial_status = 'active';
+  }
+
+  return patch;
+}
+
 function filterCustomProjects(status, btn) {
   currentCustomProjectStatusFilter = status;
 
@@ -66,18 +117,31 @@ async function updateAdminOrderStatus(id, selectEl) {
     return;
   }
 
+  const oldStatus = order.status;
+
   try {
-    await sbPatch('orders', id, { status: newStatus });
+    const payload = {
+      status: newStatus,
+      ...buildAdminOrderFinancialPatch(newStatus, order.payment_status)
+    };
+
+    await sbPatch('orders', id, payload);
 
     order.status = newStatus;
 
-    showToast('Estado do pedido actualizado pelo admin!');
+    if (payload.financial_status) {
+      order.financial_status = payload.financial_status;
+    }
 
+    showToast('Estado do pedido actualizado pelo admin!');
     renderOrdersTable(allOrders);
+
+    await loadDashboard?.();
+    await loadStorePayments?.();
   } catch (e) {
     console.error('[Admin] updateAdminOrderStatus:', e);
     showToast('Erro ao actualizar estado.', 'error');
-    selectEl.value = order.status;
+    selectEl.value = oldStatus;
   }
 }
 
@@ -102,17 +166,17 @@ window.quickApproveOrder = async function (id) {
 
   const registerCode = `REG-${order.order_ref}`;
 
-  const payload = {
-    payment_status: 'paid',
-    status: 'paid',
-    payment_tx_ref: txRef.trim(),
-    payment_receipt_code: receiptCode.trim(),
-    register_code: registerCode,
-    validated_at: new Date().toISOString(),
-    validated_by: 'super_admin',
-    validation_notes: 'Pagamento confirmado manualmente pelo admin'
-  };
-
+const payload = {
+  payment_status: 'paid',
+  status: 'paid',
+  financial_status: 'active',
+  register_code: registerCode,
+  payment_tx_ref: txRef.trim(),
+  payment_receipt_code: receiptCode.trim(),
+  validated_at: new Date().toISOString(),
+  validated_by: 'super_admin',
+  validation_notes: 'Pagamento confirmado manualmente pelo admin'
+};
   console.log('[ADMIN] quickApproveOrder payload:', payload);
 
   try {
@@ -467,7 +531,7 @@ async function decrementOrderStock(order) {
   }
 }
 
-async function moveCustomProjectsToPendingReview(orderRef) {
+/*async function moveCustomProjectsToPendingReview(orderRef) {
   if (!orderRef) return;
 
   try {
@@ -489,7 +553,7 @@ async function moveCustomProjectsToPendingReview(orderRef) {
   } catch (e) {
     console.error('[ADMIN] moveCustomProjectsToPendingReview error:', e);
   }
-}
+}*/
 
 function mapCustomProjectStatusToOrderStatus(customStatus) {
   const map = {
@@ -566,9 +630,10 @@ async function syncOrderStatusFromCustomProject(project, newCustomStatus) {
       return;
     }
 
-    await sbPatch('orders', order.id, {
-      status: mappedOrderStatus
-    });
+   await sbPatch('orders', order.id, {
+  status: mappedOrderStatus,
+  ...buildAdminOrderFinancialPatch(mappedOrderStatus, order.payment_status)
+});
 
     console.log('[ADMIN] Pedido sincronizado com custom_project:', {
       order_ref: project.order_ref,
@@ -1121,18 +1186,19 @@ window.deleteDeliveryProof = async function (id) {
 async function loadDashboard() {
   try {
     const [orders, stores] = await Promise.all([
-      sbGet('orders', '?select=total,status,commission_amount,payment_status'),
+      sbGet('orders', '?select=total,status,commission_amount,payment_status,financial_status,profit_commission_amount,net_profit_total'),
       sbGet('stores', '?select=id,is_active')
     ]);
 
-    const paid = orders.filter(o =>
+    const paid = (orders || []).filter(o =>
       o.payment_status === 'paid' &&
+      o.financial_status !== 'inactive' &&
       ['paid', 'production', 'shipped', 'delivered'].includes(o.status)
     );
 
-    const revenue = paid.reduce((s, o) => s + (o.total || 0), 0);
-    const commissions = paid.reduce((s, o) => s + (o.commission_amount || 0), 0);
-    const pending = orders.filter(o => o.payment_status === 'awaiting_proof').length;
+    const revenue = paid.reduce((s, o) => s + Number(o.total || 0), 0);
+    const commissions = paid.reduce((s, o) => s + Number(o.profit_commission_amount || o.commission_amount || 0), 0);
+    const pending = (orders || []).filter(o => o.payment_status === 'awaiting_proof').length;
 
     const kpiRevenue = document.getElementById('kpiRevenue');
     const kpiOrders = document.getElementById('kpiOrders');
@@ -1142,24 +1208,16 @@ async function loadDashboard() {
 
     if (kpiRevenue) kpiRevenue.textContent = fmtMT(revenue);
     if (kpiOrders) kpiOrders.textContent = String(orders.length);
-    if (kpiStores) kpiStores.textContent = String(stores.filter(s => s.is_active).length);
+    if (kpiStores) kpiStores.textContent = String((stores || []).filter(s => s.is_active).length);
     if (kpiCommissions) kpiCommissions.textContent = fmtMT(commissions);
     if (pendingBadge) pendingBadge.textContent = String(pending);
 
     const recent = await sbGet(
       'orders',
-      '?order=created_at.desc&limit=8&select=order_ref,total,status,payment_status'
+      '?order=created_at.desc&limit=8&select=order_ref,total,status,payment_status,financial_status'
     );
+
     renderRecentOrders(recent || []);
-
-    try {
-      if (typeof loadAnalytics === 'function') {
-        await loadAnalytics();
-      }
-    } catch (e) {
-      console.error('[Admin] loadAnalytics error:', e);
-    }
-
   } catch (e) {
     console.error('[Admin] Dashboard error:', e);
   }
@@ -1519,13 +1577,26 @@ function applyOrderFilters() {
 }
 
 async function updateOrderStatus(id, sel) {
+  const order = allOrders.find(x => x.id === id);
+  if (!order) return;
+
   try {
-    await sbPatch('orders', id, { status: sel.value });
+    const payload = {
+      status: sel.value,
+      ...buildAdminOrderFinancialPatch(sel.value, order.payment_status)
+    };
+
+    await sbPatch('orders', id, payload);
+
+    order.status = sel.value;
+    if (payload.financial_status) {
+      order.financial_status = payload.financial_status;
+    }
+
     showToast('Estado actualizado!');
-    /* Actualiza na lista local */
-    const o = allOrders.find(x => x.id === id);
-    if (o) o.status = sel.value;
-  } catch (e) { showToast('Erro: ' + e.message, 'error'); }
+  } catch (e) {
+    showToast('Erro: ' + e.message, 'error');
+  }
 }
 
 function viewOrder(id) {
@@ -1616,16 +1687,16 @@ window.approveManualPayment = async function () {
   }
 
   const payload = {
-    payment_status: 'paid',
-    status: 'paid',
-    register_code: registerCode,
-    payment_tx_ref: txRef,
-    payment_receipt_code: receiptCode,
-    validated_at: new Date().toISOString(),
-    validated_by: 'super_admin',
-    validation_notes: notes || ''
-  };
-
+  payment_status: 'paid',
+  status: 'paid',
+  financial_status: 'active',
+  register_code: registerCode,
+  payment_tx_ref: txRef,
+  payment_receipt_code: receiptCode,
+  validated_at: new Date().toISOString(),
+  validated_by: 'super_admin',
+  validation_notes: notes || ''
+};
   console.log('[ADMIN] currentValidationOrder:', currentValidationOrder);
   console.log('[ADMIN] payload:', payload);
 
@@ -1701,12 +1772,13 @@ async function rejectManualPayment() {
 
   try {
     await sbPatch('orders', currentValidationOrder.id, {
-      payment_status: 'failed',
-      status: 'cancelled',
-      validation_notes: notes || 'Pagamento manual rejeitado.',
-      validated_at: new Date().toISOString(),
-      validated_by: 'super_admin'
-    });
+  payment_status: 'failed',
+  status: 'cancelled',
+  financial_status: 'inactive',
+  validation_notes: notes || 'Pagamento manual rejeitado.',
+  validated_at: new Date().toISOString(),
+  validated_by: 'super_admin'
+});
 
     showToast('Pagamento rejeitado.');
     closeModal('modalValidarPagamento');
@@ -1734,24 +1806,23 @@ let currentPaymentOrder = null;
 
 
 async function loadStorePayments() {
-  const el = getByAnyId('storePaymentsTable', 'paymentsTable', 'storePaymentsWrap', 'pagamentosTable');
-  if (!el) {
-    console.error('[Admin] Nenhum container de pagamentos encontrado.');
-    return;
-  }
+  const el = document.getElementById('storePaymentsTable');
+  if (!el) return;
 
   el.innerHTML = '<div style="padding:20px;text-align:center;"><div class="loading-spinner"></div></div>';
 
   try {
     const orders = await sbGet(
       'orders',
-      '?store_payout_done=eq.false&payment_status=eq.paid&status=in.(paid,production,shipped,delivered)&order=created_at.desc&select=*'
+      '?or=(store_payout_done.eq.false,store_payout_done.is.null)&payment_status=eq.paid&financial_status=eq.active&status=in.(paid,production,shipped,delivered)&order=created_at.desc&select=*'
     );
 
-    const badge = document.getElementById('payBadge');
-    if (badge) badge.textContent = orders.length;
+    const list = orders || [];
 
-    if (!orders?.length) {
+    const badge = document.getElementById('payBadge');
+    if (badge) badge.textContent = list.length;
+
+    if (!list.length) {
       el.innerHTML = '<p style="padding:20px;color:#16A34A;font-weight:600;">✓ Todos os repasses em dia.</p>';
       return;
     }
@@ -1761,21 +1832,21 @@ async function loadStorePayments() {
         <tr>
           <th>Ref</th>
           <th>Loja</th>
-          <th>Total Pago</th>
-          <th>Comissão (8%)</th>
-          <th>Valor p/ Loja</th>
+          <th>Receita</th>
+          <th>Comissão (3% lucro)</th>
+          <th>Lucro Líquido Loja</th>
           <th>Estado</th>
           <th>Aprovação Super Admin</th>
         </tr>
       </thead>
-      <tbody>${orders.map(o => `<tr>
+      <tbody>${list.map(o => `<tr>
         <td class="order-id">${o.order_ref}</td>
         <td>${o.store_name || '—'}</td>
-        <td>${fmtMT(o.total || 0)}</td>
-        <td style="color:#E53935;">${fmtMT(o.commission_amount || 0)}</td>
-        <td style="color:#16A34A;font-weight:700;">${fmtMT(o.store_amount || 0)}</td>
+        <td>${fmtMT(o.gross_revenue_total || o.total || 0)}</td>
+        <td style="color:#E53935;">${fmtMT(o.profit_commission_amount || o.commission_amount || 0)}</td>
+        <td style="color:#16A34A;font-weight:700;">${fmtMT(o.net_profit_total || o.store_amount || 0)}</td>
         <td><span class="status-pill ${o.status}">${o.status}</span></td>
-        <td><button class="btn btn-red btn-sm" onclick='openPaymentApproval(${JSON.stringify(o).replace(/'/g, "&#39;")})'>🔒 Aprovar Repasse</button></td>
+        <td><button class="btn btn-red btn-sm" onclick="openPaymentApprovalById('${o.id}')">🔒 Aprovar Repasse</button></td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   } catch (e) {

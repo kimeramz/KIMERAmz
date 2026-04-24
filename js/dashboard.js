@@ -6,7 +6,17 @@ let allStoreOrders = [];
 let currentPeriod = 'month';
 let dashboardPollInterval = null;
 
+function isFinanciallyExcludedStatus(status = '') {
+  return ['cancelled', 'refunded', 'failed'].includes(String(status || '').trim().toLowerCase());
+}
 
+function isFinanciallyActiveOrder(order) {
+  if (!order) return false;
+  if (order.payment_status !== 'paid') return false;
+  if (String(order.financial_status || 'active').trim().toLowerCase() === 'inactive') return false;
+  if (isFinanciallyExcludedStatus(order.status)) return false;
+  return true;
+}
 
 function isValidatedOrder(order) {
   return order?.payment_status === 'paid';
@@ -204,13 +214,14 @@ function showDash(id, btn) {
   if (title) title.textContent = btn?.textContent?.trim() || id;
 
   const loaders = {
-    overview: loadStoreOverview,
-    produtos: loadStoreProducts,
-    pedidos: loadStoreOrders,
-    pagamentos: loadRevenueReport,
-    avaliacoes: loadStoreReviews,
-    loja: () => { }
-  };
+  overview: loadStoreOverview,
+  produtos: loadStoreProducts,
+  pedidos: loadStoreOrders,
+  pagamentos: loadRevenueReport,
+  lucros: loadProfitReport,
+  avaliacoes: loadStoreReviews,
+  loja: () => {}
+};
 
   loaders[id]?.();
 
@@ -250,29 +261,39 @@ async function loadStoreOverview() {
     }
 
     const [orders, products, reviews] = await Promise.all([
-      sbGet('orders', `?store_id=eq.${myStoreId}&payment_status=eq.paid&created_at=gte.${fromDate}&select=id,total,status,store_amount,payment_status,created_at,customer_name,order_ref`),
+      sbGet(
+        'orders',
+        `?store_id=eq.${myStoreId}&payment_status=eq.paid&created_at=gte.${fromDate}&select=id,total,status,store_amount,payment_status,created_at,customer_name,order_ref,financial_status,gross_revenue_total,total_cost_amount,gross_profit_total,profit_commission_amount,net_profit_total`
+      ),
       sbGet('products', `?store_id=eq.${myStoreId}&select=id`),
       sbGet('reviews', `?store_id=eq.${myStoreId}&status=eq.approved&select=rating`)
     ]);
 
-    const validatedOrders = orders.filter(isValidatedOrder);
-    const revenue = validatedOrders.reduce((s, o) => s + (o.store_amount || 0), 0);
+    const validOrders = (orders || []).filter(isFinanciallyActiveOrder);
+
+    const revenue = validOrders.reduce((s, o) => s + Number(o.net_profit_total || o.store_amount || 0), 0);
+
     const avgRating = reviews.length
       ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)
       : '—';
 
-    const readyToHandle = validatedOrders.filter(o => ['paid', 'production', 'shipped'].includes(o.status)).length;
+    const readyToHandle = validOrders.filter(o => ['paid', 'production', 'shipped'].includes(o.status)).length;
 
     document.getElementById('sk-revenue').textContent = fmtMT(revenue);
-    document.getElementById('sk-orders').textContent = validatedOrders.length;
+    document.getElementById('sk-orders').textContent = validOrders.length;
     document.getElementById('sk-rating').textContent = avgRating + (reviews.length ? ' ★' : '');
     document.getElementById('sk-products').textContent = products.length;
     document.getElementById('ordersBadge').textContent = readyToHandle;
 
-    const recent = await sbGet('orders', `?store_id=eq.${myStoreId}&payment_status=eq.paid&order=created_at.desc&limit=5&select=*`);
-    renderRecentStoreOrders(recent);
+    const recent = await sbGet(
+      'orders',
+      `?store_id=eq.${myStoreId}&payment_status=eq.paid&order=created_at.desc&limit=20&select=*`
+    );
 
-    const newOrders = detectNewValidatedOrders(recent);
+    const recentActive = (recent || []).filter(isFinanciallyActiveOrder).slice(0, 5);
+    renderRecentStoreOrders(recentActive);
+
+    const newOrders = detectNewValidatedOrders(recentActive);
     showNewValidatedNotice(newOrders);
 
     if (newOrders.length) {
@@ -285,7 +306,7 @@ async function loadStoreOverview() {
     }
 
   } catch (e) {
-    console.error(e);
+    console.error('[Dashboard] loadStoreOverview:', e);
   }
 }
 
@@ -514,7 +535,8 @@ function openNovoProduto() {
   document.getElementById('prodCategory').value = '';
   document.getElementById('prodSizes').value = '';
   document.getElementById('prodColors').value = '[]';
-document.getElementById('prodVariants').value = '[]';
+  document.getElementById('prodCostPrice').value = '';
+  document.getElementById('prodVariants').value = '[]';
   document.getElementById('prodDiscount').value = '';
   document.getElementById('prodFeatured').checked = false;
   document.getElementById('prodIsNew').checked = true;
@@ -582,6 +604,7 @@ async function saveProduto() {
       name,
       price,
       variants: variants,
+      cost_price: parseFloat(document.getElementById('prodCostPrice').value || '0') || 0,
       stock: totalStock,
       original_price: parseFloat(document.getElementById('prodOrigPrice').value || price) || price,
       category: document.getElementById('prodCategory').value || '',
@@ -645,6 +668,7 @@ async function editProduto(id) {
   document.getElementById('prodPrice').value = p.price || '';
   document.getElementById('prodOrigPrice').value = p.original_price || '';
   document.getElementById('prodStock').value = p.stock || '';
+  document.getElementById('prodCostPrice').value = p.cost_price || '';
   document.getElementById('prodDesc').value = p.description || '';
   document.getElementById('prodCategory').value = p.category || '';
   document.getElementById('prodSizes').value = (p.sizes || []).join(',');
@@ -734,20 +758,22 @@ async function pollValidatedOrders() {
 
     allStoreOrders = freshOrders || [];
 
-    const recent = allStoreOrders.slice(0, 5);
+    const activeOrders = allStoreOrders.filter(isFinanciallyActiveOrder);
+    const recent = activeOrders.slice(0, 5);
+
     renderRecentStoreOrders(recent);
 
-    const readyToHandle = allStoreOrders.filter(o =>
+    const readyToHandle = activeOrders.filter(o =>
       ['paid', 'production', 'shipped'].includes(o.status)
     ).length;
 
     const ordersBadge = document.getElementById('ordersBadge');
     if (ordersBadge) ordersBadge.textContent = readyToHandle;
 
-    const unseenOrders = detectNewValidatedOrders(allStoreOrders);
+    const unseenOrders = detectNewValidatedOrders(activeOrders);
     showNewValidatedNotice(unseenOrders);
 
-    const toastOrders = detectToastNewOrders(allStoreOrders);
+    const toastOrders = detectToastNewOrders(activeOrders);
     if (toastOrders.length) {
       markOrdersAsNotified(toastOrders);
 
@@ -766,12 +792,17 @@ async function pollValidatedOrders() {
 
     const overviewSection = document.getElementById('dash-overview');
     if (overviewSection?.classList.contains('active')) {
-      const revenue = allStoreOrders.reduce((s, o) => s + (o.store_amount || 0), 0);
+      const revenue = activeOrders.reduce((s, o) => s + Number(o.net_profit_total || o.store_amount || 0), 0);
       const skRevenue = document.getElementById('sk-revenue');
       const skOrders = document.getElementById('sk-orders');
 
       if (skRevenue) skRevenue.textContent = fmtMT(revenue);
-      if (skOrders) skOrders.textContent = allStoreOrders.length;
+      if (skOrders) skOrders.textContent = activeOrders.length;
+    }
+
+    const lucrosSection = document.getElementById('dash-lucros');
+    if (lucrosSection?.classList.contains('active')) {
+      loadProfitReport();
     }
 
   } catch (e) {
@@ -1102,11 +1133,13 @@ async function loadRevenueReport() {
   try {
     const orders = await sbGet(
       'orders',
-      `?store_id=eq.${myStoreId}&payment_status=eq.paid&status=in.(paid,production,shipped,delivered)&order=created_at.desc&select=*`
+      `?store_id=eq.${myStoreId}&payment_status=eq.paid&order=created_at.desc&select=*`
     );
 
-    const pending = orders.filter(o => !o.store_payout_done);
-    const paid = orders.filter(o => o.store_payout_done);
+    const validOrders = (orders || []).filter(isFinanciallyActiveOrder);
+
+    const pending = validOrders.filter(o => !o.store_payout_done);
+    const paid = validOrders.filter(o => o.store_payout_done);
 
     el.innerHTML = `
       <div class="kpi-grid" style="margin-bottom:20px;">
@@ -1119,7 +1152,7 @@ async function loadRevenueReport() {
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Total a Receber</span>
-            <span class="kpi-value">${fmtMT(pending.reduce((s, o) => s + (o.store_amount || 0), 0))}</span>
+            <span class="kpi-value">${fmtMT(pending.reduce((s, o) => s + Number(o.net_profit_total || o.store_amount || 0), 0))}</span>
           </div>
         </div>
 
@@ -1131,7 +1164,7 @@ async function loadRevenueReport() {
           </div>
           <div class="kpi-info">
             <span class="kpi-label">Já Recebido</span>
-            <span class="kpi-value">${fmtMT(paid.reduce((s, o) => s + (o.store_amount || 0), 0))}</span>
+            <span class="kpi-value">${fmtMT(paid.reduce((s, o) => s + Number(o.net_profit_total || o.store_amount || 0), 0))}</span>
           </div>
         </div>
       </div>
@@ -1141,18 +1174,18 @@ async function loadRevenueReport() {
           <thead>
             <tr>
               <th>Ref</th>
-              <th>Comissão (8%)</th>
-              <th>Meu valor (92%)</th>
+              <th>Comissão</th>
+              <th>Meu valor</th>
               <th>Estado Repasse</th>
               <th>Data</th>
             </tr>
           </thead>
           <tbody>
-            ${orders.map(o => `
+            ${validOrders.map(o => `
               <tr>
                 <td class="order-id">${o.order_ref}</td>
-                <td style="color:#E53935;">${fmtMT(o.commission_amount || 0)}</td>
-                <td style="color:#16A34A;font-weight:700;">${fmtMT(o.store_amount || 0)}</td>
+                <td style="color:#E53935;">${fmtMT(o.profit_commission_amount || o.commission_amount || 0)}</td>
+                <td style="color:#16A34A;font-weight:700;">${fmtMT(o.net_profit_total || o.store_amount || 0)}</td>
                 <td>
                   <span class="status-pill ${o.store_payout_done ? 'paid' : 'pending'}">
                     ${o.store_payout_done ? 'Repassado' : 'Pendente'}
@@ -1168,6 +1201,69 @@ async function loadRevenueReport() {
   } catch (e) {
     console.error('[Dashboard] loadRevenueReport:', e);
     el.innerHTML = '<p style="padding:20px;color:#DC2626;">Erro ao carregar receitas.</p>';
+  }
+}
+
+async function loadProfitReport() {
+  if (!myStoreId) return;
+  const el = document.getElementById('profitReport');
+  if (!el) return;
+
+  try {
+    const orders = await sbGet(
+      'orders',
+      `?store_id=eq.${myStoreId}&payment_status=eq.paid&order=created_at.desc&select=*`
+    );
+
+    const validOrders = (orders || []).filter(isFinanciallyActiveOrder);
+
+    const grossRevenue = validOrders.reduce((s, o) => s + Number(o.gross_revenue_total || o.total || 0), 0);
+    const totalCost = validOrders.reduce((s, o) => s + Number(o.total_cost_amount || 0), 0);
+    const grossProfit = validOrders.reduce((s, o) => s + Number(o.gross_profit_total || 0), 0);
+    const commission = validOrders.reduce((s, o) => s + Number(o.profit_commission_amount || o.commission_amount || 0), 0);
+    const netProfit = validOrders.reduce((s, o) => s + Number(o.net_profit_total || o.store_amount || 0), 0);
+
+    el.innerHTML = `
+      <div class="kpi-grid" style="margin-bottom:20px;">
+        <div class="kpi-card"><div class="kpi-info"><span class="kpi-label">Receita Bruta</span><span class="kpi-value">${fmtMT(grossRevenue)}</span></div></div>
+        <div class="kpi-card"><div class="kpi-info"><span class="kpi-label">Custo Total</span><span class="kpi-value">${fmtMT(totalCost)}</span></div></div>
+        <div class="kpi-card"><div class="kpi-info"><span class="kpi-label">Lucro Bruto</span><span class="kpi-value">${fmtMT(grossProfit)}</span></div></div>
+        <div class="kpi-card"><div class="kpi-info"><span class="kpi-label">Comissão KIMERA</span><span class="kpi-value">${fmtMT(commission)}</span></div></div>
+        <div class="kpi-card"><div class="kpi-info"><span class="kpi-label">Lucro Líquido</span><span class="kpi-value">${fmtMT(netProfit)}</span></div></div>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Ref</th>
+              <th>Receita</th>
+              <th>Custo</th>
+              <th>Lucro Bruto</th>
+              <th>Comissão 3%</th>
+              <th>Lucro Líquido</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${validOrders.map(o => `
+              <tr>
+                <td class="order-id">${o.order_ref}</td>
+                <td>${fmtMT(o.gross_revenue_total || o.total || 0)}</td>
+                <td>${fmtMT(o.total_cost_amount || 0)}</td>
+                <td>${fmtMT(o.gross_profit_total || 0)}</td>
+                <td>${fmtMT(o.profit_commission_amount || o.commission_amount || 0)}</td>
+                <td style="color:#16A34A;font-weight:700;">${fmtMT(o.net_profit_total || o.store_amount || 0)}</td>
+                <td><span class="status-pill ${o.status}">${o.status}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    console.error('[Dashboard] loadProfitReport:', e);
+    el.innerHTML = '<p style="padding:20px;color:#DC2626;">Erro ao carregar lucros.</p>';
   }
 }
 

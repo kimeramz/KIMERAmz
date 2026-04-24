@@ -560,3 +560,264 @@
 .badge-desc{
   font-weight: 600;
 }
+
+/* =========================
+   CARDS DE PRODUTO — COMPACTOS
+   Desktop + Mobile
+========================= */
+
+/* Card geral */
+.product-card,
+.prod-card,
+.products-grid .card {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* Área interna de texto */
+.product-card .product-info,
+.prod-card .product-info,
+.product-card .card-body,
+.prod-card .card-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* controla o espaço entre os blocos */
+}
+
+/* Nome da loja */
+.product-card .store-name,
+.prod-card .store-name,
+.product-card .product-store,
+.prod-card .product-store {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #E53935;
+}
+
+/* Nome do produto */
+.product-card .product-name,
+.prod-card .product-name,
+.product-card h3,
+.prod-card h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 600; /* antes estava muito pesado */
+  color: #111;
+}
+
+/* Avaliação */
+.product-card .product-rating,
+.prod-card .product-rating,
+.product-card .rating-row,
+.prod-card .rating-row {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Bloco do preço */
+.product-card .product-price-row,
+.prod-card .product-price-row,
+.product-card .price-row,
+.prod-card .price-row {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Preço actual */
+.product-card .product-price,
+.prod-card .product-price,
+.product-card .price,
+.prod-card .price {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #111;
+}
+
+/* Preço antigo */
+.product-card .product-price-old,
+.prod-card .product-price-old,
+.product-card .old-price,
+.prod-card .old-price {
+  margin: 0 0 0 8px;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 400;
+  color: #B0B0B0;
+  text-decoration: line-through;
+}
+
+/* Desconto */
+.product-card .discount-badge,
+.prod-card .discount-badge,
+.product-card .product-discount,
+.prod-card .product-discount {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* Botão + */
+.product-card .add-to-cart,
+.prod-card .add-to-cart,
+.product-card .btn-add,
+.prod-card .btn-add {
+  width: 42px;
+  height: 38px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+/* =========================
+   IMAGEM DO CARD
+========================= */
+.product-card .product-image,
+.prod-card .product-image,
+.product-card .card-image,
+.prod-card .card-image {
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+}
+
+.product-card .product-image img,
+.prod-card .product-image img,
+.product-card .card-image img,
+.prod-card .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* =========================
+   CATEGORIAS — tirar bold
+========================= */
+.category-item span,
+.categories-scroll .category-item span {
+  font-size: 15px;
+  font-weight: 400; /* tira o boldado */
+  line-height: 1.2;
+  color: #555;
+}
+
+/* Se quiseres o título "Categorias" menos pesado também */
+.categories-section .section-title {
+  font-weight: 700;
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 768px) {
+  .product-card .product-info,
+  .prod-card .product-info,
+  .product-card .card-body,
+  .prod-card .card-body {
+    padding: 12px 14px 14px;
+    gap: 5px;
+  }
+
+  .product-card .store-name,
+  .prod-card .store-name,
+  .product-card .product-store,
+  .prod-card .product-store {
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .product-card .product-name,
+  .prod-card .product-name,
+  .product-card h3,
+  .prod-card h3 {
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 500;
+  }
+
+  .product-card .product-rating,
+  .prod-card .product-rating,
+  .product-card .rating-row,
+  .prod-card .rating-row {
+    font-size: 13px;
+    gap: 4px;
+  }
+
+  .product-card .product-price,
+  .prod-card .product-price,
+  .product-card .price,
+  .prod-card .price {
+    font-size: 15px;
+  }
+
+  .product-card .product-price-old,
+  .prod-card .product-price-old,
+  .product-card .old-price,
+  .prod-card .old-price {
+    font-size: 12px;
+    margin-left: 6px;
+  }
+
+  .product-card .add-to-cart,
+  .prod-card .add-to-cart,
+  .product-card .btn-add,
+  .prod-card .btn-add {
+    width: 38px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .category-item span,
+  .categories-scroll .category-item span {
+    font-size: 14px;
+    font-weight: 400;
+  }
+}
+/* ESCONDER CATEGORIA*/
+@media (max-width: 480px){
+  .categories-section .section-title{
+    display: none;
+  }
+}
+/* NAV MENOR*/
+@media (max-width: 430px){
+  .nav-icon-btn,
+  .nav-mobile-menu{
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 6px;
+  }
+
+  .nav-icon-btn svg{
+    width: 16px;
+    height: 16px;
+  }
+
+  .cart-badge{
+    min-width: 14px;
+    height: 14px;
+    font-size: 9px;
+    top: -3px;
+    right: -3px;
+  }
+
+  .nav-mobile-menu span{
+    width: 16px;
+  }
+}

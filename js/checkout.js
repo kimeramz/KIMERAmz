@@ -35,6 +35,91 @@ async function initCheckout() {
   checkoutInitialized = true;
 }
 
+function calcOrderItemFinancials(item = {}) {
+  const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+  const unitPrice = Number(item.price || 0);
+  const unitCost = Number(item.cost_price || 0);
+
+  const unitProfit = unitPrice - unitCost;
+  const grossRevenue = unitPrice * qty;
+  const totalCost = unitCost * qty;
+  const grossProfit = unitProfit * qty;
+
+  const commissionRate = 0.03;
+  const profitCommissionAmount = Math.max(0, grossProfit * commissionRate);
+  const netProfit = grossProfit - profitCommissionAmount;
+
+  return {
+    ...item,
+
+    unit_price: unitPrice,
+    unit_cost: unitCost,
+    unit_profit: unitProfit,
+
+    gross_revenue: grossRevenue,
+    total_cost: totalCost,
+    gross_profit: grossProfit,
+
+    commission_rate: commissionRate,
+    profit_commission_amount: profitCommissionAmount,
+    net_profit: netProfit
+  };
+}
+
+function calcOrderFinancialTotals(items = []) {
+  return items.reduce((acc, item) => {
+    acc.gross_revenue_total += Number(item.gross_revenue || 0);
+    acc.total_cost_amount += Number(item.total_cost || 0);
+    acc.gross_profit_total += Number(item.gross_profit || 0);
+    acc.profit_commission_amount += Number(item.profit_commission_amount || 0);
+    acc.net_profit_total += Number(item.net_profit || 0);
+    return acc;
+  }, {
+    gross_revenue_total: 0,
+    total_cost_amount: 0,
+    gross_profit_total: 0,
+    profit_commission_amount: 0,
+    net_profit_total: 0
+  });
+}
+
+async function enrichCartItemsWithCost(items = []) {
+  const ids = [...new Set(
+    items
+      .map(i => i.product_id || i.id || null)
+      .filter(Boolean)
+      .filter(id => !String(id).startsWith('custom-'))
+  )];
+
+  if (!ids.length) {
+    return items.map(item => calcOrderItemFinancials({
+      ...item,
+      cost_price: Number(item.cost_price || 0)
+    }));
+  }
+
+  const rows = await sbGet(
+    'products',
+    `?id=in.(${ids.join(',')})&select=id,cost_price`
+  );
+
+  const costMap = {};
+  (rows || []).forEach(p => {
+    costMap[p.id] = Number(p.cost_price || 0);
+  });
+
+  return items.map(item => {
+    const productId = item.product_id || item.id || null;
+
+    return calcOrderItemFinancials({
+      ...item,
+      cost_price: String(productId || '').startsWith('custom-')
+        ? Number(item.cost_price || 0)
+        : Number(costMap[productId] || 0)
+    });
+  });
+}
+
 function renderOrderSummary() {
   const list = document.getElementById('checkoutItems');
   if (!list) return;
@@ -438,15 +523,25 @@ async function createOrdersManual(formData) {
 
   for (let index = 0; index < groups.length; index++) {
     const group = groups[index];
-    const orderItems = sanitizeOrderItems(group.items);
+    // 1. normalizar
+const sanitizedItems = sanitizeOrderItems(group.items);
 
-    const groupSub = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
-    const groupShare = sub > 0 ? groupSub / sub : 1;
-    const groupDel = groups.length === 1 ? del : Math.round(del * groupShare);
-    const groupDisc = Math.round(disc * groupShare);
-    const groupTotal = groupSub - groupDisc + groupDel;
-    const commission = Math.round(groupTotal * KIMERA_CONFIG.business.commissionRate);
-    const storeAmt = groupTotal - commission;
+// 2. enriquecer com custo + lucro
+const enrichedItems = await enrichCartItemsWithCost(sanitizedItems);
+const orderItems = enrichedItems;
+// 3. calcular totais reais
+const totals = calcOrderFinancialTotals(enrichedItems);
+
+// 4. manter lógica de divisão de entrega/desconto
+const groupSub = enrichedItems.reduce((s, i) => s + i.price * i.quantity, 0);
+const groupShare = sub > 0 ? groupSub / sub : 1;
+const groupDel = groups.length === 1 ? del : Math.round(del * groupShare);
+const groupDisc = Math.round(disc * groupShare);
+const groupTotal = groupSub - groupDisc + groupDel;
+
+// 🔴 NOVO MODELO
+const commission = totals.profit_commission_amount;
+const storeAmt = totals.net_profit_total;
 
     const ref = `${masterRef}-${index + 1}`;
 
@@ -461,13 +556,24 @@ async function createOrdersManual(formData) {
   store_id: group.store_id,
   store_name: group.store_name,
 
-  items: orderItems,
+  items: enrichedItems,
+
   subtotal: groupSub,
   delivery_fee: groupDel,
   discount: groupDisc,
   total: groupTotal,
+
   commission_amount: commission,
   store_amount: storeAmt,
+
+  gross_revenue_total: totals.gross_revenue_total,
+  total_cost_amount: totals.total_cost_amount,
+  gross_profit_total: totals.gross_profit_total,
+  profit_commission_rate: 0.03,
+  profit_commission_amount: totals.profit_commission_amount,
+  net_profit_total: totals.net_profit_total,
+  financial_status: 'active',
+
   coupon_code: couponData?.code || null,
 
   status: 'pending',
@@ -509,7 +615,7 @@ createdOrders.push({
   master_ref: masterRef,
   store_name: group.store_name,
   total: groupTotal,
-  items: orderItems
+  items: enrichedItems,
 });
 
   }

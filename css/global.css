@@ -317,3 +317,47 @@ nav {
 .page-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:280px;gap:14px;color:#9E9E9E;font-size:14px;}
 
 
+@media (max-width: 430px){
+  .nav-icon-btn,
+  .nav-mobile-menu{
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 6px;
+  }
+
+  .nav-icon-btn svg{
+    width: 16px;
+    height: 16px;
+  }
+
+  .cart-badge{
+    min-width: 14px;
+    height: 14px;
+    font-size: 9px;
+    top: -3px;
+    right: -3px;
+  }
+
+  .nav-mobile-menu span{
+    width: 16px;
+  }
+}
+
+/* SIDEBAR MOBILE COM SCROLL */
+@media (max-width: 768px){
+  #adminSidebar,
+  .admin-sidebar{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 82%;
+    max-width: 320px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    z-index: 9999;
+    padding-bottom: 90px;
+  }
+}
