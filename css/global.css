@@ -361,3 +361,19 @@ nav {
     padding-bottom: 90px;
   }
 }
+
+/* esconder barra de scroll visual, mas manter scroll funcional */
+html,
+body,
+#adminSidebar,
+.admin-sidebar{
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE/Edge antigo */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#adminSidebar::-webkit-scrollbar,
+.admin-sidebar::-webkit-scrollbar{
+  display: none;              /* Chrome, Safari, Edge */
+}
