@@ -1864,7 +1864,7 @@ function openPaymentApproval(order) {
       <p style="font-size:13px;color:#757575;margin-bottom:6px;">Pedido: <strong>${order.order_ref}</strong></p>
       <p style="font-size:13px;color:#757575;margin-bottom:6px;">Loja: <strong>${order.store_name || '—'}</strong></p>
       <p style="font-size:13px;color:#757575;margin-bottom:6px;">Pago pelo cliente: <strong>${fmtMT(order.total)}</strong></p>
-      <p style="font-size:13px;color:#E53935;margin-bottom:6px;">Comissão Kimera (8%): <strong>${fmtMT(order.commission_amount)}</strong></p>
+      <p style="font-size:13px;color:#E53935;margin-bottom:6px;">Comissão Kimera (3%): <strong>${fmtMT(order.commission_amount)}</strong></p>
       <p style="font-size:18px;font-weight:800;color:#16A34A;">A repassar à loja: ${fmtMT(order.store_amount)}</p>
     </div>
     <div class="config-field"><label>Referência de Transferência (opcional)</label>
