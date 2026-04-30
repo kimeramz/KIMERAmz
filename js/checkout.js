@@ -680,9 +680,9 @@ function buildWhatsAppMessage(formData, createdOrders, total, masterRef) {
     `Itens:\n${itemsText}\n\n` +
     `Total a pagar: ${fmtMT(total)}\n\n` +
     `Vou enviar o comprovativo nesta conversa.\n\n` +
-    `Dados para validação:\n` +
-    `-Copia e cola aqui a mensagem de trasferencia.\n` +
-    `-Referência da transação:\n`;
+    `Dados para validação:\n\n` +
+    `Copia e cola aqui a mensagem da trasferencia com a *Referência da transação:*\n\n`+
+    `*->*`;
 
   return encodeURIComponent(rawMessage);
 }
