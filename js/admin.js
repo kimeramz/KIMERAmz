@@ -1732,7 +1732,7 @@ function buildClientWhatsAppMessage(order, registerCode = '') {
     `Ref. da encomenda: ${order.order_ref || '—'}%0A` +
     `Estado: Pagamento confirmado%0A` +
     `Código de registo: ${registerCode || order.register_code || 'A definir'}%0A%0A` +
-    `A sua encomenda seguirá agora para preparação.%0AObrigado por comprar connosco.`;
+    `A sua encomenda seguirá agora para preparação.%0A%0APode acompanhar o processo pelo sistema de rastreio: https://kimeramz.netlify.app/pages/rastrear %0A%0AObrigado por comprar connosco.`;
 }
 
 function openClientWhatsApp(id) {
