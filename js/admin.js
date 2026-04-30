@@ -1728,7 +1728,7 @@ function normalizePhone(phone) {
 }
 
 function buildClientWhatsAppMessage(order, registerCode = '') {
-  return `Olá. Confirmámos o pagamento da sua encomenda.%0A%0A` +
+  return `Confirmámos o pagamento da sua encomenda.%0A%0A` +
     `Ref. da encomenda: ${order.order_ref || '—'}%0A` +
     `Estado: Pagamento confirmado%0A` +
     `Código de registo: ${registerCode || order.register_code || 'A definir'}%0A%0A` +
